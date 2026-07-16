@@ -22,10 +22,11 @@ export async function loadConfig() {
   return {
     rootDir,
     port: Number(process.env.HOODSCAN_PORT || process.env.PORT || 5177),
-    blockscoutOrigin: process.env.BLOCKSCOUT_ORIGIN || contracts?.chain?.blockscoutOrigin || 'https://robinhoodchain.blockscout.com',
+    chainId: Number(process.env.HOODSCAN_CHAIN_ID || contracts?.chain?.chainId || 0) || null,
+    blockscoutOrigin: process.env.HOODSCAN_BLOCKSCOUT_API_URL || process.env.BLOCKSCOUT_ORIGIN || contracts?.chain?.blockscoutOrigin || 'https://robinhoodchain.blockscout.com',
     quickNode: {
-      rpcUrl: process.env.QUICKNODE_RPC_URL || process.env.HOODCHAIN_RPC_URL || '',
-      wsUrl: process.env.QUICKNODE_WS_URL || '',
+      rpcUrl: process.env.HOODSCAN_RPC_HTTP_URL || process.env.QUICKNODE_RPC_URL || process.env.HOODCHAIN_RPC_URL || '',
+      wsUrl: process.env.HOODSCAN_RPC_WS_URL || process.env.QUICKNODE_WS_URL || '',
       webhookSecret: process.env.QUICKNODE_WEBHOOK_SECRET || ''
     },
     hoodId: {

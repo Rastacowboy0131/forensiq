@@ -28,6 +28,7 @@ async function tick() {
     blocksUpserted: result.blocksUpserted,
     transactionsUpserted: result.transactionsUpserted,
     eventsCreated: result.eventsCreated,
+    tokenDeploysCreated: result.tokenDeploysCreated,
     errors: result.errors,
     counts: result.status.counts
   }, null, 2));

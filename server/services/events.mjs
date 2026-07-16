@@ -1,4 +1,6 @@
 export const EVENT_TYPES = Object.freeze({
+  BLOCK_SEEN: 'BLOCK_SEEN',
+  TX_SEEN: 'TX_SEEN',
   TOKEN_DEPLOYED: 'TOKEN_DEPLOYED',
   LIQUIDITY_ADDED: 'LIQUIDITY_ADDED',
   TOKEN_TRENDING: 'TOKEN_TRENDING',
@@ -31,8 +33,9 @@ export function createEventService(config) {
 
   function previewTelegram(event, tier = 'premium') {
     const delay = tier === 'free' ? `delayed ${config.freeAlertDelayMinutes}m` : 'instant';
-    const subject = event.payload?.symbol || event.tokenAddress || event.subjectAddress || 'Hood Chain signal';
-    return `🟢 HoodScan ${tier.toUpperCase()} (${delay})\n\n${event.eventType}\n${subject}\n\nView: hoodscan.app`;
+    const subject = event.payload?.symbol || event.payload?.name || event.tokenAddress || event.subjectAddress || 'Hood Chain signal';
+    const explorerPath = event.txHash ? `/tx/${event.txHash}` : event.tokenAddress ? `/token/${event.tokenAddress}` : event.subjectAddress ? `/address/${event.subjectAddress}` : '';
+    return `🟢 HoodScan ${tier.toUpperCase()} (${delay})\n\n${event.eventType}\n${subject}\n\n${event.payload?.reason || ''}\nView: hoodscan.app${explorerPath}`;
   }
 
   return { buildAlertEvent, previewTelegram };

@@ -816,6 +816,62 @@ async function renderHoodLock(address) {
   } catch (error) { setError(error); }
 }
 
+async function renderAlerts() {
+  setPageTitle('Live alerts', 'HoodScan live alpha alerts and new token deploy feed.');
+  setLoading('Loading HoodScan live alerts…');
+  const [statusResult, alertsResult, tokensResult] = await Promise.allSettled([
+    api('/api/alerts/status'),
+    api('/api/alerts?limit=50'),
+    api('/api/tokens/new?limit=25')
+  ]);
+  if (statusResult.status === 'rejected') return setError(statusResult.reason);
+  const status = statusResult.value;
+  const alerts = alertsResult.status === 'fulfilled' ? alertsResult.value.items || [] : [];
+  const tokens = tokensResult.status === 'fulfilled' ? tokensResult.value.items || [] : [];
+  const latest = status.latestAlert;
+  app.innerHTML = `
+    <section class="grid-4">
+      ${metric('Alert mode', status.quickNodeRpcConfigured ? 'RPC live-ready' : 'Blockscout dry-run', status.quickNodeWsConfigured ? 'WebSocket configured' : 'WS key not added yet')}
+      ${metric('Total alerts', numberText(alerts.length, 0), `${numberText(status.counts.events, 0)} all events`)}
+      ${metric('Token deploys', numberText(status.alertCounts?.tokenDeploys || tokens.length, 0), 'local DB')}
+      ${metric('Latest alert', latest ? age(latest.createdAt) : 'None yet', latest?.eventType || 'run indexer')}
+    </section>
+    ${card('Live alert feed', `<p class="muted">This is the premium-alert lane: token deploys now, then liquidity, whale buys, HoodSafe score changes, and HoodLock unlocks. Free alerts can be delayed with <code>FREE_ALERT_DELAY_MINUTES</code>.</p>${alertEventTable(alerts)}`, '<span class="badge green">DB-backed</span>')}
+    ${card('New token deploy detector', `<p class="muted">Indexer v1 watches latest transactions for created contracts, enriches token metadata from Blockscout when available, stores the token, and emits a TOKEN_DEPLOYED alert.</p>${newTokenTable(tokens)}`, '<span class="badge yellow">v1 scaffold</span>')}
+  `;
+}
+
+function alertEventTable(events = []) {
+  if (!events.length) return '<p class="muted">No alpha alerts yet. Run <code>npm run worker:indexer -- --once</code> to seed from latest Blockscout data, then add RPC/WS keys for instant mode.</p>';
+  return `<div class="table-wrap"><table><thead><tr><th>Alert</th><th>Token / Subject</th><th>Wallet</th><th>Block</th><th>Premium</th><th>Free</th><th>Actions</th></tr></thead><tbody>${events.map(event => {
+    const payload = event.payload || {};
+    const subject = event.tokenAddress || event.subjectAddress || payload.token || payload.txHash || 'Hood Chain';
+    const kind = isTxHash(subject) ? 'tx' : isAddress(subject) ? 'token' : 'block';
+    const title = payload.symbol || payload.name || eventLabel(event);
+    return `<tr>
+      <td data-label="Alert"><span class="badge ${eventTone(event)}">${escapeHtml(eventLabel(event))}</span><br><small class="muted">${escapeHtml(payload.reason || '')}</small></td>
+      <td data-label="Token / Subject"><span class="cell-stack"><a class="row-link mono" href="${isAddress(subject) ? `#/token/${subject}` : isTxHash(subject) ? `#/tx/${subject}` : '#/alerts'}">${escapeHtml(title)}</a><small class="muted mono">${escapeHtml(String(subject).startsWith('0x') ? shortAddr(subject) : subject)}</small></span></td>
+      <td data-label="Wallet">${event.walletAddress || payload.deployer ? addressCell({ hash: event.walletAddress || payload.deployer }) : '—'}</td>
+      <td data-label="Block">${event.blockNumber ? `<a class="row-link" href="#/block/${event.blockNumber}">${event.blockNumber}</a>` : '—'}</td>
+      <td data-label="Premium">${event.premiumAt ? age(event.premiumAt) : 'instant'}</td>
+      <td data-label="Free">${event.freeAt ? new Date(event.freeAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+      <td data-label="Actions">${String(subject).startsWith('0x') ? actions(kind, subject) : ''}${event.txHash ? actions('tx', event.txHash) : ''}</td>
+    </tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+
+function newTokenTable(tokens = []) {
+  if (!tokens.length) return '<p class="muted">No token deploys stored yet. This will fill when recent txs include created contracts.</p>';
+  return `<div class="table-wrap"><table><thead><tr><th>Token</th><th>Deployer</th><th>First block</th><th>Holders</th><th>Supply</th><th>Actions</th></tr></thead><tbody>${tokens.map(token => `<tr>
+    <td data-label="Token"><span class="cell-stack"><a class="row-link" href="#/token/${token.address}">${escapeHtml(token.symbol || token.name || 'TOKEN')}</a><small class="muted">${escapeHtml(token.name || shortAddr(token.address))}</small><small class="mono muted">${shortAddr(token.address)}</small></span></td>
+    <td data-label="Deployer">${token.deployer_address ? addressCell({ hash: token.deployer_address }) : '—'}</td>
+    <td data-label="First block">${token.first_seen_block ? `<a class="row-link" href="#/block/${token.first_seen_block}">${token.first_seen_block}</a>` : '—'}</td>
+    <td data-label="Holders">${numberText(token.holders_count, 0)}</td>
+    <td data-label="Supply">${token.total_supply ? tokenAmount(token.total_supply, token.decimals || 18) : '—'}</td>
+    <td data-label="Actions">${actions('token', token.address)}${token.first_seen_tx ? actions('tx', token.first_seen_tx) : ''}</td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
 async function renderRealtime() {
   setPageTitle('Realtime feed', 'Local HoodScan realtime/indexer feed, ready for QuickNode keys.');
   setLoading('Loading local realtime indexer feed…');
@@ -868,6 +924,7 @@ function route() {
   if (page === 'flows') return renderFlows();
   if (page === 'tokens') return renderTokens(false);
   if (page === 'new-tokens') return renderTokens(true);
+  if (page === 'alerts') return renderAlerts();
   if (page === 'realtime') return renderRealtime();
   if (page === 'search') return renderSearch(decoded);
   if (page === 'address') return renderAddress(decoded);

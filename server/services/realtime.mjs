@@ -39,6 +39,7 @@ export function createRealtimeService({ db, blockscout, rpc, events }) {
       blocksUpserted: 0,
       transactionsUpserted: 0,
       eventsCreated: 0,
+      tokenDeploysCreated: 0,
       errors: []
     };
 
@@ -95,6 +96,11 @@ export function createRealtimeService({ db, blockscout, rpc, events }) {
           }, { severity: 'info', txHash: tx.hash, blockNumber: Number(tx.block_number || 0) || null })));
           summary.eventsCreated += 1;
         }
+        const tokenDeployCreated = await ingestTokenDeployFromTx(tx, source);
+        if (tokenDeployCreated) {
+          summary.tokenDeploysCreated += 1;
+          summary.eventsCreated += 1;
+        }
         summary.transactionsUpserted += 1;
       }
     } catch (error) {
@@ -112,6 +118,88 @@ export function createRealtimeService({ db, blockscout, rpc, events }) {
     }
 
     return { ...summary, status: await status() };
+  }
+
+  async function ingestTokenDeployFromTx(tx, source) {
+    const contract = createdContractFromTx(tx);
+    if (!contract?.address || !tx.hash || tx.status === 'error') return false;
+    const existing = db.get('SELECT id FROM events WHERE event_type = ? AND token_address = ? LIMIT 1', [EVENT_TYPES.TOKEN_DEPLOYED, contract.address]);
+    if (existing) return false;
+
+    const token = await tokenProfile(contract.address, contract);
+    db.upsert('tokens', ['address'], {
+      address: contract.address,
+      symbol: token.symbol,
+      name: token.name,
+      decimals: token.decimals,
+      total_supply: token.total_supply,
+      holders_count: token.holders_count,
+      transfers_count: token.transfers_count,
+      exchange_rate: token.exchange_rate,
+      circulating_market_cap: token.circulating_market_cap,
+      first_seen_block: Number(tx.block_number || tx.block || 0) || null,
+      first_seen_tx: tx.hash,
+      deployer_address: addressHash(tx.from),
+      created_at: tx.timestamp || nowIso(),
+      updated_at: nowIso()
+    });
+
+    db.insert('events', serializeEvent(events.buildAlertEvent(EVENT_TYPES.TOKEN_DEPLOYED, {
+      token: contract.address,
+      symbol: token.symbol || 'TOKEN',
+      name: token.name || contract.name || 'New contract',
+      deployer: addressHash(tx.from),
+      txHash: tx.hash,
+      blockNumber: Number(tx.block_number || tx.block || 0) || null,
+      source,
+      reason: 'New contract deploy detected by HoodScan indexer v1.'
+    }, {
+      severity: token.symbol || token.name ? 'high' : 'info',
+      tokenAddress: contract.address,
+      walletAddress: addressHash(tx.from),
+      txHash: tx.hash,
+      blockNumber: Number(tx.block_number || tx.block || 0) || null
+    })));
+    return true;
+  }
+
+  function createdContractFromTx(tx) {
+    const contract = tx?.created_contract;
+    const address = addressHash(contract);
+    if (!address) return null;
+    return {
+      address,
+      name: contract?.name || contract?.metadata?.name || null,
+      isVerified: Boolean(contract?.is_verified)
+    };
+  }
+
+  async function tokenProfile(address, contract = {}) {
+    try {
+      const payload = await blockscout.token(address);
+      const token = payload.data || {};
+      return {
+        symbol: token.symbol || null,
+        name: token.name || contract.name || null,
+        decimals: Number(token.decimals || 18),
+        total_supply: token.total_supply ? String(token.total_supply) : null,
+        holders_count: Number(token.holders_count || 0) || null,
+        transfers_count: Number(token.transfers_count || 0) || null,
+        exchange_rate: token.exchange_rate ? String(token.exchange_rate) : null,
+        circulating_market_cap: token.circulating_market_cap ? String(token.circulating_market_cap) : null
+      };
+    } catch {
+      return {
+        symbol: null,
+        name: contract.name || null,
+        decimals: 18,
+        total_supply: null,
+        holders_count: null,
+        transfers_count: null,
+        exchange_rate: null,
+        circulating_market_cap: null
+      };
+    }
   }
 
   function serializeEvent(event) {
@@ -153,6 +241,28 @@ export function createRealtimeService({ db, blockscout, rpc, events }) {
     return db.all('SELECT * FROM events ORDER BY datetime(created_at) DESC, id DESC LIMIT ?', [Math.min(Number(limit) || 20, 100)]).map(hydrateEvent);
   }
 
+  function latestAlerts(limit = 40) {
+    const rows = db.all(`SELECT * FROM events WHERE event_type IN ('TOKEN_DEPLOYED','LIQUIDITY_ADDED','TOKEN_TRENDING','ALPHA_WALLET_BUY','WHALE_BUY','WHALE_SELL','HOODSAFE_SCORE_CHANGED','LOCK_CREATED','LOCK_UNLOCK_SOON') ORDER BY datetime(created_at) DESC, id DESC LIMIT ?`, [Math.min(Number(limit) || 40, 100)]);
+    return rows.map(hydrateEvent);
+  }
+
+  function newTokens(limit = 40) {
+    return db.all('SELECT * FROM tokens ORDER BY COALESCE(first_seen_block, 0) DESC, datetime(created_at) DESC, address DESC LIMIT ?', [Math.min(Number(limit) || 40, 100)]);
+  }
+
+  async function alertSummary() {
+    const counts = await status();
+    const latest = latestAlerts(1)[0] || null;
+    return {
+      ...counts,
+      alertCounts: {
+        tokenDeploys: db.get('SELECT COUNT(*) AS count FROM events WHERE event_type = ?', [EVENT_TYPES.TOKEN_DEPLOYED])?.count || 0,
+        highSeverity: db.get('SELECT COUNT(*) AS count FROM events WHERE severity = ?', ['high'])?.count || 0
+      },
+      latestAlert: latest
+    };
+  }
+
   function latestBlocks(limit = 12) {
     return db.all('SELECT * FROM blocks ORDER BY height DESC LIMIT ?', [Math.min(Number(limit) || 12, 100)]);
   }
@@ -165,5 +275,5 @@ export function createRealtimeService({ db, blockscout, rpc, events }) {
     return { items: [], note: 'Ready for QuickNode eth_getLogs Transfer-topic ingestion once QUICKNODE_RPC_URL/WS are added.' };
   }
 
-  return { migrate, status, ingestLatest, latestEvents, latestBlocks, latestTransactions, latestTransfers };
+  return { migrate, status, ingestLatest, latestEvents, latestAlerts, newTokens, alertSummary, latestBlocks, latestTransactions, latestTransfers };
 }

@@ -87,8 +87,15 @@ CREATE TABLE IF NOT EXISTS events (
   delivered_free_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS indexer_state (
+  key TEXT PRIMARY KEY,
+  value TEXT,
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_events_type_created ON events(event_type, created_at);
 CREATE INDEX IF NOT EXISTS idx_events_delivery ON events(premium_at, free_at, delivered_premium_at, delivered_free_at);
+CREATE INDEX IF NOT EXISTS idx_events_token_created ON events(token_address, created_at);
 CREATE INDEX IF NOT EXISTS idx_token_holder_token ON token_holder_snapshots(token_address, captured_at);
 
 DROP INDEX IF EXISTS idx_events_tx_seen;

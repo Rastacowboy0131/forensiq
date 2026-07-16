@@ -10,6 +10,10 @@ export async function handleApi(req, res, url, ctx) {
   if (pathname === '/api/realtime/latest-blocks') return ok(res, { items: ctx.realtime.latestBlocks(Number(searchParams.get('limit') || 12)) });
   if (pathname === '/api/realtime/latest-transactions') return ok(res, { items: ctx.realtime.latestTransactions(Number(searchParams.get('limit') || 12)) });
   if (pathname === '/api/realtime/latest-transfers') return ok(res, ctx.realtime.latestTransfers());
+  if (pathname === '/api/alerts') return ok(res, { items: ctx.realtime.latestAlerts(Number(searchParams.get('limit') || 40)) });
+  if (pathname === '/api/alerts/latest') return ok(res, { items: ctx.realtime.latestAlerts(Number(searchParams.get('limit') || 12)) });
+  if (pathname === '/api/alerts/status') return ok(res, await ctx.realtime.alertSummary());
+  if (pathname === '/api/tokens/new') return ok(res, { items: ctx.realtime.newTokens(Number(searchParams.get('limit') || 40)) });
   if (pathname === '/api/home') return ok(res, await ctx.explorer.home());
   if (pathname === '/api/markets') return ok(res, await ctx.marketIntel.markets(searchParams.get('tab') || 'top'));
   if (pathname === '/api/stock-tokens') return ok(res, await ctx.marketIntel.stockTokens());
