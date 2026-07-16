@@ -242,7 +242,7 @@ export function createRealtimeService({ db, blockscout, rpc, events }) {
   }
 
   function latestAlerts(limit = 40) {
-    const rows = db.all(`SELECT * FROM events WHERE event_type IN ('TOKEN_DEPLOYED','LIQUIDITY_ADDED','TOKEN_TRENDING','ALPHA_WALLET_BUY','WHALE_BUY','WHALE_SELL','HOODSAFE_SCORE_CHANGED','LOCK_CREATED','LOCK_UNLOCK_SOON') ORDER BY datetime(created_at) DESC, id DESC LIMIT ?`, [Math.min(Number(limit) || 40, 100)]);
+    const rows = db.all(`SELECT * FROM events WHERE event_type IN ('TOKEN_DEPLOYED','LIQUIDITY_ADDED','TOKEN_TRENDING','ALPHA_WALLET_BUY','WHALE_BUY','WHALE_SELL','HOODSAFE_SCORE_CHANGED','LOCK_CREATED','LOCK_UNLOCK_SOON','PAIR_VOLUME_SPIKE','WHALE_WALLET_MOVE','LIQUIDITY_REMOVED','NEW_PAIR_CREATED','FRESH_WALLET_BUY') ORDER BY datetime(created_at) DESC, id DESC LIMIT ?`, [Math.min(Number(limit) || 40, 100)]);
     return rows.map(hydrateEvent);
   }
 

@@ -10,6 +10,7 @@ import { createMarketIntelService } from './services/market-intel.mjs';
 import { createHoodSafeService } from './services/hoodsafe.mjs';
 import { createTokenIntelService } from './services/token-intel.mjs';
 import { createTelegramAlertsService } from './services/telegram-alerts.mjs';
+import { createTrenchService } from './services/trench.mjs';
 
 export function createAppContext(config) {
   const blockscout = createBlockscoutProvider(config);
@@ -24,5 +25,6 @@ export function createAppContext(config) {
   const hoodsafe = createHoodSafeService({ blockscout, marketIntel });
   const tokenIntel = createTokenIntelService({ blockscout });
   const telegramAlerts = createTelegramAlertsService({ db, config, events });
-  return { config, db, blockscout, rpc, hoodId, labels, explorer, events, realtime, marketIntel, hoodsafe, tokenIntel, telegramAlerts };
+  const trench = createTrenchService({ db, blockscout, marketIntel, events });
+  return { config, db, blockscout, rpc, hoodId, labels, explorer, events, realtime, marketIntel, hoodsafe, tokenIntel, telegramAlerts, trench };
 }

@@ -56,7 +56,13 @@ function eventLabel(event = {}) {
     TOKEN_TRENDING: 'Token trending',
     ALPHA_WALLET_BUY: 'Alpha wallet buy',
     WHALE_BUY: 'Whale buy',
-    WHALE_SELL: 'Whale sell'
+    WHALE_SELL: 'Whale sell',
+    PAIR_VOLUME_SPIKE: 'Pair volume spike',
+    WHALE_WALLET_MOVE: 'Whale wallet move',
+    LIQUIDITY_ADDED: 'Liquidity added',
+    LIQUIDITY_REMOVED: 'Liquidity removed',
+    NEW_PAIR_CREATED: 'New pair created',
+    FRESH_WALLET_BUY: 'Fresh wallet buy'
   };
   return labels[event.eventType] || event.eventType || 'Realtime event';
 }
@@ -816,6 +822,70 @@ async function renderHoodLock(address) {
   } catch (error) { setError(error); }
 }
 
+function trenchPairTable(items = []) {
+  if (!items.length) return '<p class="muted">No pair rows yet. Run <code>npm run worker:trench -- --once</code> or open <code>/api/trench/ingest</code> to seed from the market feed.</p>';
+  return `<div class="table-wrap"><table><thead><tr><th>Pair</th><th>Score</th><th>5m Vol</th><th>1h Vol</th><th>Buys/Sells</th><th>Liquidity</th><th>Why alerted</th><th>Actions</th></tr></thead><tbody>${items.map(pair => `<tr>
+    <td data-label="Pair"><span class="cell-stack"><strong>${escapeHtml(pair.symbol || 'Pair')}</strong><small class="muted">${escapeHtml(pair.dex || 'DEX')}</small><small class="mono muted">${escapeHtml(shortAddr(pair.pair_address || ''))}</small></span></td>
+    <td data-label="Score"><span class="badge ${pair.trench_score >= 80 ? 'green' : pair.trench_score >= 55 ? 'yellow' : ''}">${numberText(pair.trench_score, 0)}/100</span></td>
+    <td data-label="5m Vol">${pair.volume_5m_usd ? `$${numberText(pair.volume_5m_usd, 0)}` : '—'}</td>
+    <td data-label="1h Vol">${pair.volume_1h_usd ? `$${numberText(pair.volume_1h_usd, 0)}` : '—'}</td>
+    <td data-label="Buys/Sells"><span class="badge green">${numberText(pair.buys_5m, 0)} buy</span> <span class="badge ${Number(pair.sells_5m || 0) > Number(pair.buys_5m || 0) ? 'red' : ''}">${numberText(pair.sells_5m, 0)} sell</span></td>
+    <td data-label="Liquidity">${pair.liquidity_usd ? `$${numberText(pair.liquidity_usd, 0)}` : '—'}</td>
+    <td data-label="Why alerted"><small class="muted">${escapeHtml((pair.why || []).slice(0, 3).join(' · ') || 'watching')}</small></td>
+    <td data-label="Actions">${pair.token0_address && isAddress(pair.token0_address) ? actions('token', pair.token0_address) : copyButton(pair.pair_address, 'Copy pair')}</td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+function whaleMoveTable(items = []) {
+  if (!items.length) return '<p class="muted">No whale movements stored yet. The trench worker will fill this from large native transfers now, then swap logs later.</p>';
+  return `<div class="table-wrap"><table><thead><tr><th>Wallet</th><th>Side</th><th>Amount</th><th>Pair/Token</th><th>Reason</th><th>Age</th><th>Actions</th></tr></thead><tbody>${items.map(move => `<tr>
+    <td data-label="Wallet">${addressCell({ hash: move.wallet_address })}</td>
+    <td data-label="Side"><span class="badge ${/buy/i.test(move.side || '') ? 'green' : /sell|remove/i.test(move.side || '') ? 'red' : 'yellow'}">${escapeHtml(move.side || 'move')}</span></td>
+    <td data-label="Amount">${move.amount_usd ? `$${numberText(move.amount_usd, 0)}` : '—'}</td>
+    <td data-label="Pair/Token"><span class="mono muted">${escapeHtml(shortAddr(move.pair_address || move.token_address || ''))}</span></td>
+    <td data-label="Reason"><small class="muted">${escapeHtml(move.reason || 'large movement')}</small></td>
+    <td data-label="Age">${age(move.created_at)}</td>
+    <td data-label="Actions">${move.tx_hash ? actions('tx', move.tx_hash) : actions('address', move.wallet_address)}</td>
+  </tr>`).join('')}</tbody></table></div>`;
+}
+
+function trenchAlertCards(items = []) {
+  if (!items.length) return '<p class="muted">No trench alerts yet. Volume spikes, whale moves, and fresh-wallet buys will appear here and feed Telegram HoodAlerts.</p>';
+  return `<div class="finding-list">${items.slice(0, 8).map(event => {
+    const payload = event.payload || {};
+    const why = Array.isArray(payload.why) ? payload.why : payload.reason ? [payload.reason] : [];
+    return `<div class="finding ${event.severity === 'high' ? 'yellow' : ''}">
+      <span class="badge ${eventTone(event)}">${escapeHtml(eventLabel(event))}</span>
+      <strong>${escapeHtml(payload.pair || payload.symbol || payload.wallet || event.subjectAddress || 'Trench signal')}</strong>
+      <p>${escapeHtml(why.join(' · ') || 'Signal queued for trench monitoring.')}</p>
+      <small class="muted">${age(event.createdAt)}${event.txHash ? ` · ${shortAddr(event.txHash)}` : ''}</small>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+async function renderTrench() {
+  setPageTitle('Trench terminal', 'HoodScan trench terminal for hot pairs, whale movements, and volume alerts.');
+  setLoading('Loading HoodScan trench terminal…');
+  try {
+    const data = await api('/api/trench/overview');
+    const status = data.status || {};
+    app.innerHTML = `
+      <section class="grid-4">
+        ${metric('Mode', status.mode || 'waiting', status.note || 'pair monitor')}
+        ${metric('Hot pairs', numberText(status.hotPairs, 0), 'ranked by Trench Score')}
+        ${metric('Whale moves', numberText(status.whaleMoves, 0), 'large transfers')}
+        ${metric('Top score', `${numberText(status.topScore, 0)}/100`, `${numberText(status.trenchAlerts, 0)} trench alerts`)}
+      </section>
+      ${card('Trench terminal', `<p class="muted">Hot-pair, whale-movement, pair-volume, liquidity, and fresh-wallet alert lane. MVP reads Blockscout/market-feed data; QuickNode pair logs can plug into this same API and Telegram pipeline later.</p><p>${labelBadges([{ text: 'Whale buys', tone: 'green' }, { text: 'Pair volume spikes', tone: 'yellow' }, { text: 'Fresh wallets' }, { text: 'Liquidity moves' }])}</p>`, '<span class="badge green">alpha lane</span>')}
+      ${card('Hot pairs / volume radar', trenchPairTable(data.hotPairs || []), '<span class="badge yellow">Trench Score</span>')}
+      <section class="grid-2">
+        ${card('Whale wallet movement', whaleMoveTable(data.whaleMoves || []), '<span class="badge yellow">watchlist-ready</span>')}
+        ${card('Why alerted?', trenchAlertCards(data.trenchAlerts || []), '<span class="badge green">Telegram-ready</span>')}
+      </section>
+    `;
+  } catch (error) { setError(error); }
+}
+
 async function renderAlerts() {
   setPageTitle('Live alerts', 'HoodScan live alpha alerts and new token deploy feed.');
   setLoading('Loading HoodScan live alerts…');
@@ -942,6 +1012,7 @@ function route() {
   if (page === 'hoodlock') return renderHoodLock(decoded);
   if (page === 'defi') return renderDefi();
   if (page === 'flows') return renderFlows();
+  if (page === 'trench') return renderTrench();
   if (page === 'tokens') return renderTokens(false);
   if (page === 'new-tokens') return renderTokens(true);
   if (page === 'alerts') return renderAlerts();
