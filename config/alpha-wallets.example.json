@@ -1,0 +1,4 @@
+{
+  "wallets": [],
+  "notes": "Add known alpha wallets here later. Do not commit private chat IDs/user IDs/source metadata. Example item: { \"address\": \"0x...\", \"label\": \"Alpha Wallet #1\", \"tier\": \"premium\", \"hitRate\": null }."
+}

@@ -1,0 +1,10 @@
+{
+  "manual": {
+    "0x0000000000000000000000000000000000000000": ["Burn", "Zero Address"]
+  },
+  "rules": {
+    "proxyNameIncludes": ["proxy", "transparentupgradeableproxy"],
+    "routerNameIncludes": ["router", "universalrouter"],
+    "factoryNameIncludes": ["factory"]
+  }
+}
