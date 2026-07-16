@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.mjs",
-    "check": "node --check server.mjs && node --check public/app.js && node --check server/workers/indexer.mjs && node --check server/workers/alerts.mjs && node --check server/db/migrate.mjs && node --check server/services/realtime.mjs && node --check server/services/hoodsafe.mjs && node --check server/services/token-intel.mjs",
+    "check": "node --check server.mjs && node --check public/app.js && node --check server/workers/indexer.mjs && node --check server/workers/alerts.mjs && node --check server/db/migrate.mjs && node --check server/services/realtime.mjs && node --check server/services/telegram-alerts.mjs && node --check server/services/hoodsafe.mjs && node --check server/services/token-intel.mjs",
     "worker:indexer": "node server/workers/indexer.mjs",
     "worker:alerts": "node server/workers/alerts.mjs",
     "db:migrate": "node server/db/migrate.mjs",

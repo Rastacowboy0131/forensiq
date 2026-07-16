@@ -819,13 +819,15 @@ async function renderHoodLock(address) {
 async function renderAlerts() {
   setPageTitle('Live alerts', 'HoodScan live alpha alerts and new token deploy feed.');
   setLoading('Loading HoodScan live alerts…');
-  const [statusResult, alertsResult, tokensResult] = await Promise.allSettled([
+  const [statusResult, deliveryResult, alertsResult, tokensResult] = await Promise.allSettled([
     api('/api/alerts/status'),
+    api('/api/alerts/delivery-status'),
     api('/api/alerts?limit=50'),
     api('/api/tokens/new?limit=25')
   ]);
   if (statusResult.status === 'rejected') return setError(statusResult.reason);
   const status = statusResult.value;
+  const delivery = deliveryResult.status === 'fulfilled' ? deliveryResult.value : null;
   const alerts = alertsResult.status === 'fulfilled' ? alertsResult.value.items || [] : [];
   const tokens = tokensResult.status === 'fulfilled' ? tokensResult.value.items || [] : [];
   const latest = status.latestAlert;
@@ -836,9 +838,27 @@ async function renderAlerts() {
       ${metric('Token deploys', numberText(status.alertCounts?.tokenDeploys || tokens.length, 0), 'local DB')}
       ${metric('Latest alert', latest ? age(latest.createdAt) : 'None yet', latest?.eventType || 'run indexer')}
     </section>
+    ${delivery ? `<section class="grid-4">
+      ${metric('Telegram bot', delivery.telegram.botConfigured ? 'Configured' : 'Missing', 'TELEGRAM_BOT_TOKEN')}
+      ${metric('Premium alerts', delivery.telegram.premiumReady ? 'Ready' : 'Dry-run only', `${numberText(delivery.pending.premium, 0)} pending now`)}
+      ${metric('Free alerts', delivery.telegram.freeReady ? 'Ready' : 'Dry-run only', `${numberText(delivery.pending.free, 0)} due · ${numberText(delivery.pending.freeScheduled, 0)} scheduled`)}
+      ${metric('Delivered', `${numberText(delivery.delivered.premium, 0)}/${numberText(delivery.delivered.free, 0)}`, 'premium/free')}
+    </section>` : ''}
+    ${card('Telegram HoodAlerts delivery', `${deliveryStatusBody(delivery)}<p class="muted">Run <code>npm run worker:alerts -- --once</code> for dry-run preview. Add <code>--send</code> only after Telegram bot/chat IDs are set.</p>`, '<span class="badge yellow">safe by default</span>')}
     ${card('Live alert feed', `<p class="muted">This is the premium-alert lane: token deploys now, then liquidity, whale buys, HoodSafe score changes, and HoodLock unlocks. Free alerts can be delayed with <code>FREE_ALERT_DELAY_MINUTES</code>.</p>${alertEventTable(alerts)}`, '<span class="badge green">DB-backed</span>')}
     ${card('New token deploy detector', `<p class="muted">Indexer v1 watches latest transactions for created contracts, enriches token metadata from Blockscout when available, stores the token, and emits a TOKEN_DEPLOYED alert.</p>${newTokenTable(tokens)}`, '<span class="badge yellow">v1 scaffold</span>')}
   `;
+}
+
+function deliveryStatusBody(delivery) {
+  if (!delivery) return '<p class="muted">Delivery status unavailable.</p>';
+  return `<p>
+    <span class="badge ${delivery.telegram.botConfigured ? 'green' : 'yellow'}">Bot ${delivery.telegram.botConfigured ? 'configured' : 'missing'}</span>
+    <span class="badge ${delivery.telegram.premiumReady ? 'green' : 'yellow'}">Premium ${delivery.telegram.premiumReady ? 'ready' : 'dry-run'}</span>
+    <span class="badge ${delivery.telegram.freeReady ? 'green' : 'yellow'}">Free ${delivery.telegram.freeReady ? 'ready' : 'dry-run'}</span>
+    <span class="badge">Free delay ${numberText(delivery.telegram.freeDelayMinutes, 0)}m</span>
+  </p>
+  <p class="muted">Pending now: premium <strong>${numberText(delivery.pending.premium, 0)}</strong>, free <strong>${numberText(delivery.pending.free, 0)}</strong>. Scheduled free alerts: <strong>${numberText(delivery.pending.freeScheduled, 0)}</strong>.</p>`;
 }
 
 function alertEventTable(events = []) {

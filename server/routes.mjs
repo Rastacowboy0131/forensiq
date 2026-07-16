@@ -13,6 +13,7 @@ export async function handleApi(req, res, url, ctx) {
   if (pathname === '/api/alerts') return ok(res, { items: ctx.realtime.latestAlerts(Number(searchParams.get('limit') || 40)) });
   if (pathname === '/api/alerts/latest') return ok(res, { items: ctx.realtime.latestAlerts(Number(searchParams.get('limit') || 12)) });
   if (pathname === '/api/alerts/status') return ok(res, await ctx.realtime.alertSummary());
+  if (pathname === '/api/alerts/delivery-status') return ok(res, ctx.telegramAlerts.deliveryStatus());
   if (pathname === '/api/tokens/new') return ok(res, { items: ctx.realtime.newTokens(Number(searchParams.get('limit') || 40)) });
   if (pathname === '/api/home') return ok(res, await ctx.explorer.home());
   if (pathname === '/api/markets') return ok(res, await ctx.marketIntel.markets(searchParams.get('tab') || 'top'));
