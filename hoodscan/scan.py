@@ -55,7 +55,7 @@ def main():
     chain = mdata.get("chain") or args.chain
     launch_ms = mdata.get("launch_ms")
 
-    sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain)
+    sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain, mdata.get("pair_addr"))
 
     gh_url = args.github or github_forensics.discover_from_market(mdata)
     sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)

@@ -87,7 +87,7 @@ def _lp_addresses(gp):
     return out
 
 
-def _blockscout_holders(addr, chain, gp, findings, flags, hard_flags):
+def _blockscout_holders(addr, chain, gp, findings, flags, hard_flags, extra_lp=None):
     base = BLOCKSCOUT_BASES.get(chain)
     if not base:
         findings.append("no blockscout endpoint known for chain '{}'".format(chain))
@@ -106,6 +106,9 @@ def _blockscout_holders(addr, chain, gp, findings, flags, hard_flags):
         return
 
     lp_addrs = _lp_addresses(gp)
+    for a in extra_lp or []:
+        if a:
+            lp_addrs.add(a.lower())
     creator = ((gp or {}).get("creator_address") or "").lower()
     items = (hold.get("items") or [])
     non_lp = []
@@ -145,9 +148,13 @@ def _blockscout_holders(addr, chain, gp, findings, flags, hard_flags):
         flags.append("top-10 concentration {:.0f}%".format(top10))
 
 
-def scan(addr, chain):
-    """Return {findings, flags, hard_flags} for the CONTRACT/HOLDERS section."""
+def scan(addr, chain, pair_addr=None):
+    """Return {findings, flags, hard_flags} for the CONTRACT/HOLDERS section.
+
+    pair_addr: the DEX pool address from market data, always excluded from holder math.
+    """
     findings, flags, hard_flags = [], [], []
     gp = _goplus(addr, chain, findings, flags, hard_flags)
-    _blockscout_holders(addr, chain, gp, findings, flags, hard_flags)
+    _blockscout_holders(addr, chain, gp, findings, flags, hard_flags,
+                        extra_lp=[pair_addr] if pair_addr else None)
     return {"findings": findings, "flags": flags, "hard_flags": hard_flags}

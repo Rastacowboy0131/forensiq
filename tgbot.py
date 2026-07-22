@@ -80,7 +80,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
     launch_ms = mdata.get("launch_ms")
     token_name = mdata.get("name") or mdata.get("symbol") or ""
 
-    sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain)
+    sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain, mdata.get("pair_addr"))
     gh_url = github or github_forensics.discover_from_market(mdata)
     sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
     sections["SITE"] = site_mod.scan(site_url or scan_cli.discover_site(mdata))
