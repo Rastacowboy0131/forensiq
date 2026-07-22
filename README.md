@@ -1,4 +1,4 @@
-# HoodScan v1
+# Forensiq v1 (formerly HoodScan)
 
 Web UI + rule-based scan engine. Paste a CA, get the truth.
 

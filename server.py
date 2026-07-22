@@ -1,4 +1,4 @@
-"""HoodScan web server: stdlib only, runs on Python 3.6+.
+"""Forensiq web server: stdlib only, runs on Python 3.6+.
 
 Endpoints:
   POST /api/scan     {address, chain?, github?, site?, twitter?}
@@ -94,7 +94,7 @@ def rate_ok(ip):
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "HoodScan/1.0"
+    server_version = "Forensiq/1.0"
 
     def log_message(self, fmt, *args):
         pass
@@ -185,7 +185,7 @@ class ThreadingServer(socketserver.ThreadingMixIn, HTTPServer):
 def main():
     port = int(os.environ.get("PORT", "8080"))
     srv = ThreadingServer(("0.0.0.0", port), Handler)
-    print("HoodScan listening on :%d" % port)
+    print("Forensiq listening on :%d" % port)
     srv.serve_forever()
 
 
