@@ -1,93 +1,47 @@
-# HoodScan
+# HoodScan v1
 
-Solscan-style Hood Chain explorer MVP powered by the public Blockscout instance at `https://robinhoodchain.blockscout.com`.
+Rule-based rug/larp scanner for Robinhood Chain (chain id 4663) and other EVM chains. No LLM calls: pure API checks and heuristics.
 
-## Run locally
+## Usage
 
-```bash
-npm install
-cp .env.example .env # optional; fill only values you actually have
-npm start
+```
+cd projects/hoodscan
+python3 -m hoodscan.scan <token_or_pair_address> [chain] [options]
 ```
 
-Open: http://localhost:5177
+- `chain` defaults to `robinhood`. Also supported: ethereum, bsc, base, arbitrum, polygon.
+- `--github URL` github org or repo (auto-discovered from dexscreener token info when possible)
+- `--site URL` project website
+- `--twitter HANDLE` twitter handle
+- `--json` machine-readable output
 
-## What works in this MVP
+Example:
 
-- Live Hood Chain stats from Blockscout
-- Latest transactions and latest batches/blocks
-- ERC-20 token directory
-- Search by address, transaction hash, block number, token symbol, or `.hood` name placeholder
-- Token detail pages with overview, holders, and latest transfers
-- Address detail pages with balance/transaction/transfer sections
-- Transaction detail pages
-- Local proxy at `/api/blockscout?path=/api/v2/...` so the browser does not need to call Blockscout directly
-
-## Blueprint
-
-See [`BLUEPRINT.md`](./BLUEPRINT.md) for the full HoodScan roadmap.
-
-Product direction:
-
-```text
-HoodScan = explorer + wallet/token intelligence
-HoodID   = .hood identity layer
-HoodSafe = token/contract risk layer
-HoodLock = future Streamflow-style lock/vesting layer for Hood Chain tokens
-HoodAlerts/HoodAlpha = delayed free TG alerts + instant premium signal layer
+```
+python3 -m hoodscan.scan 0x8Cad179555e3dE1E99CbDb900eaE0593b9eC79Db robinhood --github https://github.com/org/repo --site https://example.com --twitter handle
 ```
 
-## Next build slices
+## Output
 
-1. Polish the explorer foundation: categorized search results, copy buttons, Blockscout deep links, section-level errors, mobile table cards, route titles, and starter labels. **Phase 1 shipped locally.**
-2. Build the foundation layer: HoodScan API routes, provider modules, config/env, DB schema, and indexer/alert worker skeletons. **Foundation shipped locally.**
-3. Plug in HoodID registry contract address + ABI and resolve `.hood` names everywhere an address appears.
-4. Add HoodSafe scoring on token pages: verified contract, holder concentration, owner/mint/blacklist flags, LP lock status.
-5. Add DEX price/liquidity data from Dexscreener/GeckoTerminal or the main Hood Chain DEX router/factory.
-6. Add HoodAlerts/HoodAlpha: delayed free Telegram trending alerts, instant premium alpha-wallet/whale/deploy alerts, and watchlists.
-7. Add HoodLock later: LP locks, team token locks, vesting streams, and public proof pages feeding HoodSafe.
+Five sections (CHART, CONTRACT/HOLDERS, GITHUB, SITE, SOCIALS), each with bullet findings and `[FLAG]` markers, then a final tier:
 
-## Dry-run realtime foundation
+LEGIT-REAL / EARLY-REAL / NARRATIVE-ONLY / SKETCHY / PURE-LARP / AVOID
 
-Until QuickNode keys are added, the realtime/indexer path can be exercised locally with Blockscout-backed dry-run data:
+Hard flags (honeypot, live mint authority, dev-held high concentration with unlocked LP) force AVOID regardless of everything else.
 
-```bash
-npm run db:migrate
-npm run worker:indexer
-npm start
-```
+## Modules
 
-Open:
+- `hoodscan/http.py` shared HTTP layer: 10s timeouts, per-run in-memory cache, requests with urllib fallback
+- `hoodscan/market.py` dexscreener lookup (token or pair address), price/liquidity/volume, pair age, wash-trade heuristic (vol/liq > 10x plus buy:sell near 1:1)
+- `hoodscan/contract.py` goplus token security (honeypot, taxes, mintable, owner privileges, blacklist) plus blockscout holder distribution (top-10 excluding LP and burn addresses). Blockscout base for Robinhood Chain: https://robinhoodchain.blockscout.com (verified working). Degrades to "unavailable" if blockscout fails
+- `hoodscan/github_forensics.py` unauthenticated GitHub REST: repo age vs launch date, star:fork anomaly, fork detection, author count, CI workflow presence. Reports "rate limited" cleanly on 403
+- `hoodscan/site.py` homepage fetch, template-shell markers (gitbook, framer, wix, carrd, notion), word count, dead-link sampling (up to 10 internal links). Domain age is out of scope for v1 (no whois dependency)
+- `hoodscan/socials.py` twitter via fxtwitter API (created date vs launch, follower count), telegram stubbed for v1
+- `hoodscan/verdict.py` flag aggregation, tier computation, chat-ready rendering
+- `hoodscan/scan.py` CLI entrypoint
 
-```text
-http://localhost:5177/#/realtime
-```
+## Notes
 
-This seeds and reads:
-
-```text
-data/hoodscan.sqlite
-/api/realtime/status
-/api/realtime/latest-events
-/api/realtime/latest-blocks
-/api/realtime/latest-transactions
-```
-
-Once QuickNode is ready, add real values only to `.env`:
-
-```bash
-QUICKNODE_RPC_URL=
-QUICKNODE_WS_URL=
-```
-
-## Environment
-
-Optional:
-
-```bash
-PORT=5177
-BLOCKSCOUT_ORIGIN=https://robinhoodchain.blockscout.com
-DATABASE_URL=file:./data/hoodscan.sqlite
-QUICKNODE_RPC_URL=
-QUICKNODE_WS_URL=
-```
+- goplus covers Robinhood Chain natively with chain id 4663 (honeypot, taxes, holders, creator, LP info all populated).
+- Host Python is 3.6 and lacks `requests`, so http.py falls back to urllib automatically.
+- Tier heuristic: hard flags force AVOID; otherwise 0 flags with a real repo is LEGIT-REAL, up to 2 flags with substance (repo or site) is EARLY-REAL, otherwise NARRATIVE-ONLY, then SKETCHY (3-4), PURE-LARP (5-6), AVOID (7+).
