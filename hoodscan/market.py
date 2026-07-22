@@ -57,8 +57,14 @@ def scan(addr, chain=None):
         if age_days < 3:
             flags.append("very new pair (<3 days)")
 
+    # Launchpad-heavy chains: thin liquidity is the norm (bonding curve tokens),
+    # so it is informational there, not a flag. Elsewhere it stays a flag.
+    launchpad_chain = data["chain"] in ("robinhood",)
     if liq < 5000:
-        flags.append("very thin liquidity ({})".format(fmt_usd(liq)))
+        if launchpad_chain:
+            findings.append("thin liquidity ({}), normal for launchpad tokens".format(fmt_usd(liq)))
+        else:
+            flags.append("very thin liquidity ({})".format(fmt_usd(liq)))
     elif liq < 15000:
         findings.append("thin liquidity ({})".format(fmt_usd(liq)))
 
