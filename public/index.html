@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HoodScan</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>Hood<span>Scan</span></h1>
+  <p class="tag">paste a CA, get the truth</p>
+</header>
+
+<main>
+  <form id="scan-form" autocomplete="off">
+    <div class="row">
+      <input id="address" type="text" placeholder="token or pair address" required spellcheck="false">
+      <select id="chain">
+        <option value="robinhood" selected>robinhood</option>
+        <option value="solana">solana</option>
+        <option value="ethereum">ethereum</option>
+        <option value="bsc">bsc</option>
+        <option value="base">base</option>
+        <option value="arbitrum">arbitrum</option>
+      </select>
+      <button id="scan-btn" type="submit">scan</button>
+    </div>
+    <details id="more">
+      <summary>more options</summary>
+      <div class="row extra">
+        <input id="github" type="text" placeholder="github org or repo URL (optional)" spellcheck="false">
+        <input id="site" type="text" placeholder="project website (optional)" spellcheck="false">
+        <input id="twitter" type="text" placeholder="twitter handle (optional)" spellcheck="false">
+      </div>
+    </details>
+  </form>
+
+  <div id="loading" class="hidden">
+    <div class="spinner"></div>
+    <p>scanning... this takes 10 to 30 seconds<span id="dots"></span></p>
+  </div>
+
+  <div id="error" class="hidden"></div>
+
+  <section id="result" class="hidden">
+    <div id="verdict"></div>
+    <div id="sections"></div>
+  </section>
+
+  <section id="history-wrap">
+    <h2>recent scans</h2>
+    <ul id="history"></ul>
+  </section>
+</main>
+
+<footer>HoodScan v1: rule-based rug/larp scanner. Not financial advice.</footer>
+<script src="app.js"></script>
+</body>
+</html>

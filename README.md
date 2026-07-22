@@ -1,5 +1,31 @@
 # HoodScan v1
 
+Web UI + rule-based scan engine. Paste a CA, get the truth.
+
+## Web server
+
+Stdlib only, runs on Python 3.6+:
+
+```
+cd projects/hoodscan
+python3 server.py        # PORT env var, default 8080
+```
+
+- `POST /api/scan` body `{"address": "0x...", "chain": "robinhood", "github": "", "site": "", "twitter": ""}` returns scan JSON plus rendered text. Results cache 10 minutes per address+chain. Rate limit: 10 scans/min per IP.
+- `GET /api/history` last 50 scans (persisted to `scans.json`).
+- `GET /` static frontend from `public/`.
+
+## Railway deploy
+
+`railway.json`, `Procfile`, and an empty `requirements.txt` are included, so from the repo root:
+
+```
+railway init   # once, link or create a project
+railway up
+```
+
+Nixpacks detects Python, no dependencies to install, start command is `python3 server.py`, and Railway injects `PORT`. Note: `scans.json` lives on the ephemeral filesystem, so history resets on redeploy (attach a Railway volume mounted at the app dir if you want it durable).
+
 Rule-based rug/larp scanner for Robinhood Chain (chain id 4663) and other EVM chains. No LLM calls: pure API checks and heuristics.
 
 ## Usage
