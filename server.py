@@ -16,6 +16,7 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from hoodscan import market, contract, github_forensics, site as site_mod, socials, verdict
+from hoodscan import scan as scan_cli
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PUBLIC = os.path.join(ROOT, "public")
@@ -61,8 +62,8 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
     sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain)
     gh_url = github or github_forensics.discover_from_market(mdata)
     sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
-    sections["SITE"] = site_mod.scan(site_url)
-    sections["SOCIALS"] = socials.scan(twitter, launch_ms)
+    sections["SITE"] = site_mod.scan(site_url or scan_cli.discover_site(mdata))
+    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms)
 
     tier, total_flags, hard = verdict.compute_tier(sections)
     rendered = verdict.render(sections, tier, total_flags, hard)

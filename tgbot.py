@@ -26,6 +26,7 @@ import urllib.parse
 import urllib.request
 
 from hoodscan import market, contract, github_forensics, site as site_mod, socials, verdict
+from hoodscan import scan as scan_cli
 
 FORENSIQ_URL = os.environ.get("FORENSIQ_URL", "https://forensiq-production-d50a.up.railway.app")
 
@@ -82,8 +83,8 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
     sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain)
     gh_url = github or github_forensics.discover_from_market(mdata)
     sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
-    sections["SITE"] = site_mod.scan(site_url)
-    sections["SOCIALS"] = socials.scan(twitter, launch_ms)
+    sections["SITE"] = site_mod.scan(site_url or scan_cli.discover_site(mdata))
+    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms)
 
     tier, total_flags, hard = verdict.compute_tier(sections)
     return {
