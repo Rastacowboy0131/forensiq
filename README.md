@@ -71,3 +71,20 @@ Hard flags (honeypot, live mint authority, dev-held high concentration with unlo
 - goplus covers Robinhood Chain natively with chain id 4663 (honeypot, taxes, holders, creator, LP info all populated).
 - Host Python is 3.6 and lacks `requests`, so http.py falls back to urllib automatically.
 - Tier heuristic: hard flags force AVOID; otherwise 0 flags with a real repo is LEGIT-REAL, up to 2 flags with substance (repo or site) is EARLY-REAL, otherwise NARRATIVE-ONLY, then SKETCHY (3-4), PURE-LARP (5-6), AVOID (7+).
+
+## Telegram bot (tgbot.py)
+
+Single-file, stdlib-only long-polling bot. Commands: `/start`, `/scan <address> [chain] [github=URL site=URL twitter=handle]`. Bare messages containing an EVM address (0x + 40 hex) scan on robinhood, base58 addresses scan on solana. Sends "scanning...", then edits the message with a compact HTML report (tier emoji, per-section flags, footer link to the full site). Results cached 10 minutes per (address, chain). Free users get 5 scans per day; ids in `PREMIUM_CHAT_IDS` (comma separated) are unlimited (premium is a stub for now).
+
+Env vars:
+
+- `TELEGRAM_BOT_TOKEN` (required): from @BotFather
+- `FORENSIQ_URL` (optional): full-report site link for the footer
+- `PREMIUM_CHAT_IDS` (optional): comma separated Telegram user ids
+
+Run locally: `TELEGRAM_BOT_TOKEN=... python3 tgbot.py`
+Self test without a token: `python3 tgbot.py --selftest`
+
+### Deploy on Railway as a second service
+
+In the same repo, add a second service in the Railway project and override its start command to `python3 tgbot.py` (Settings, Deploy, Custom Start Command). The web service keeps `web: python3 server.py` from the Procfile. Set `TELEGRAM_BOT_TOKEN` (and optionally `FORENSIQ_URL`, `PREMIUM_CHAT_IDS`) on the bot service only.
