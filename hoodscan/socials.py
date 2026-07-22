@@ -7,7 +7,8 @@ def scan(twitter_handle=None, launch_ms=None):
     """Return {findings, flags} for the SOCIALS section."""
     findings, flags = [], []
     if not twitter_handle:
-        findings.append("no twitter handle provided")
+        findings.append("no twitter listed on dex profile or provided")
+        flags.append("no twitter/X presence found")
     else:
         handle = twitter_handle.lstrip("@")
         d = get_json("https://api.fxtwitter.com/{}".format(handle))
