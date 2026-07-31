@@ -153,7 +153,9 @@ def scan(github_url, launch_ms=None):
             findings.append("single-author repo")
 
         # Commit time spread: history dumped in one burst is a backdating/copy tell.
-        if len(dates) >= 10:
+        # Skip for brand-new repos where the span physically can't be longer.
+        repo_age_days = (now - created).days if created else 999
+        if len(dates) >= 10 and repo_age_days > 7:
             span_days = (max(dates) - min(dates)).days
             distinct_days = len({d.date() for d in dates})
             if span_days <= 2:
@@ -163,7 +165,9 @@ def scan(github_url, launch_ms=None):
                 good.append("commits spread over {} distinct days across {} days (organic history)".format(
                     distinct_days, span_days))
 
-        if first_commit and created and first_commit < created:
+        # Commits slightly predating creation happens with local commits pushed
+        # after repo creation; only a real tell when the gap is days.
+        if first_commit and created and (created - first_commit).days >= 2:
             flags.append("commits predate repo creation (history copied or repo recreated)")
     else:
         findings.append("could not fetch commits")

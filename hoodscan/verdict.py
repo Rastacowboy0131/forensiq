@@ -20,6 +20,17 @@ def compute_tier(sections):
     if hard:
         return "AVOID", total_flags, hard
 
+    # Newness dedup: a brand-new pair, twitter, and repo are one underlying
+    # fact (the project is days old), not three independent red flags.
+    newness = 0
+    for s in sections.values():
+        for f in s.get("flags") or []:
+            if ("very new pair" in f or "created within 2 weeks of launch" in f
+                    or "created within a week of token launch" in f):
+                newness += 1
+    if newness >= 2:
+        total_flags -= newness - 1
+
     # Substance signals: does anything real exist beyond a chart?
     gh_flags = len(sections.get("GITHUB", {}).get("flags") or [])
     gh_findings = sections.get("GITHUB", {}).get("findings") or []
