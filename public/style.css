@@ -224,6 +224,8 @@ main { flex: 1; width: 100%; max-width: 1160px; margin: 0 auto; padding: 24px 20
 .t-PURE-LARP, .t-AVOID { color: var(--hard); }
 
 .cached-note { color: var(--dim); font-size: 11px; margin-top: 10px; }
+.permalink { color: var(--cyan); text-decoration: none; }
+.permalink:hover { text-decoration: underline; }
 
 footer {
   text-align: center; padding: 16px; color: var(--dim);

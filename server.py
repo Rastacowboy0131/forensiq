@@ -26,6 +26,8 @@ HISTORY_FILE = os.path.join(DATA_DIR, "scans.json")
 CACHE_TTL = 600          # 10 minutes
 RATE_LIMIT = 10          # scans per minute per IP
 HISTORY_MAX = 50
+REPORTS_DIR = os.path.join(DATA_DIR, "reports")
+ID_RE = re.compile(r"^[a-f0-9]{12}$")
 
 _cache = {}              # (address, chain) -> (ts, payload)
 _rate = {}               # ip -> [timestamps]
@@ -49,6 +51,32 @@ def save_history(items):
     with open(tmp, "w") as f:
         json.dump(items[:HISTORY_MAX], f)
     os.rename(tmp, HISTORY_FILE)
+
+
+def save_report(result):
+    """Persist a full scan result under a short content id; return the id."""
+    import hashlib
+    rid = hashlib.sha256("{}:{}:{}".format(
+        result["address"].lower(), result["chain"], result["scanned_at"]).encode()).hexdigest()[:12]
+    try:
+        os.makedirs(REPORTS_DIR, exist_ok=True)
+        tmp = os.path.join(REPORTS_DIR, rid + ".tmp")
+        with open(tmp, "w") as f:
+            json.dump(result, f)
+        os.rename(tmp, os.path.join(REPORTS_DIR, rid + ".json"))
+    except Exception:
+        return None
+    return rid
+
+
+def load_report(rid):
+    if not ID_RE.match(rid or ""):
+        return None
+    try:
+        with open(os.path.join(REPORTS_DIR, rid + ".json")) as f:
+            return json.load(f)
+    except Exception:
+        return None
 
 
 def run_scan(address, chain, github=None, site_url=None, twitter=None):
@@ -131,6 +159,14 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(200, load_history())
         if path == "/api/health":
             return self._json(200, {"ok": True})
+        if path.startswith("/api/report/"):
+            rep = load_report(path.rsplit("/", 1)[-1])
+            if rep is None:
+                return self._json(404, {"error": "report not found"})
+            return self._json(200, rep)
+        # Permalink pages serve the app shell; the frontend loads the report.
+        if path.startswith("/r/"):
+            path = "/index.html"
         # static files
         if path == "/":
             path = "/index.html"
@@ -186,10 +222,16 @@ class Handler(BaseHTTPRequestHandler):
 
         with _lock:
             _cache[key] = (now, result)
+        rid = save_report(result)
+        if rid:
+            result["id"] = rid
+            result["permalink"] = "/r/" + rid
+        with _lock:
             hist = load_history()
             hist.insert(0, {"address": result["address"], "chain": result["chain"],
                             "name": result.get("name") or "",
                             "tier": result["tier"], "score": result.get("score"),
+                            "id": rid,
                             "ts": result["scanned_at"]})
             save_history(hist)
 

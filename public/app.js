@@ -200,6 +200,16 @@
       note.textContent = "cached result (scans cache for 10 minutes)";
       sectionsEl.appendChild(note);
     }
+    if (data.permalink || data.id) {
+      var pl = document.createElement("p");
+      pl.className = "cached-note";
+      var a = document.createElement("a");
+      a.className = "permalink";
+      a.href = data.permalink || ("/r/" + data.id);
+      a.textContent = "permalink to this report";
+      pl.appendChild(a);
+      sectionsEl.appendChild(pl);
+    }
     show(result);
   }
 
@@ -226,6 +236,7 @@
         addr.textContent = it.address;
         li.appendChild(tier); li.appendChild(nm); li.appendChild(addr);
         li.addEventListener("click", function () {
+          if (it.id) { window.location.href = "/r/" + it.id; return; }
           document.getElementById("address").value = it.address;
           form.dispatchEvent(new Event("submit"));
         });
@@ -269,4 +280,22 @@
   });
 
   loadHistory();
+
+  // Permalink route: /r/<id> loads a stored report.
+  var m = window.location.pathname.match(/^\/r\/([a-f0-9]{12})$/);
+  if (m) {
+    show(loading); startDots();
+    fetch("/api/report/" + m[1]).then(function (r) {
+      if (!r.ok) throw new Error("report not found");
+      return r.json();
+    }).then(function (data) {
+      renderResult(data);
+      if (data.address) document.getElementById("address").value = data.address;
+    }).catch(function (err) {
+      errBox.textContent = err.message;
+      show(errBox);
+    }).finally(function () {
+      hide(loading); stopDots();
+    });
+  }
 })();
