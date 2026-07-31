@@ -27,6 +27,41 @@ def discover_from_market(market_data):
     return None
 
 
+def discover_from_site(site_url):
+    """Find a github repo link on the project site, including inside JS bundles.
+
+    SPA dashboards often have a bare index.html with the github link buried in
+    the compiled bundle, so scan up to 3 script assets too.
+    """
+    from .http import get_text
+    from urllib.parse import urljoin
+    if not site_url:
+        return None
+    if not site_url.startswith("http"):
+        site_url = "https://" + site_url
+    status, html = get_text(site_url)
+    if status is None or status >= 400 or not html:
+        return None
+    m = re.search(r"github\.com/([\w.-]+/[\w.-]+)", html)
+    if m:
+        return "https://github.com/" + m.group(1)
+    scripts = re.findall(r'src=["\'](.*?\.js[^"\']*)["\']', html)[:3]
+    for s in scripts:
+        st, js = get_text(urljoin(site_url, s))
+        if st is None or st >= 400 or not js:
+            continue
+        m = re.search(r"github\.com/([\w.-]+/[\w.-]+)", js)
+        if m:
+            name = m.group(1)
+            # Skip common vendor repos that show up in bundle license headers.
+            low = name.lower()
+            if any(v in low for v in ("facebook/", "vitejs/", "vuejs/", "sveltejs/",
+                                      "twbs/", "jquery/", "webpack/", "babel/")):
+                continue
+            return "https://github.com/" + name
+    return None
+
+
 def _parse_repo(url):
     m = re.search(r"github\.com/([\w.-]+)(?:/([\w.-]+))?", url or "")
     if not m:

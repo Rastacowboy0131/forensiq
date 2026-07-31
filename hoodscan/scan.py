@@ -60,9 +60,12 @@ def main():
     sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain, mdata.get("pair_addr"))
 
     gh_url = args.github or github_forensics.discover_from_market(mdata)
-    sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
 
     site_url = args.site or discover_site(mdata)
+    if not gh_url:
+        gh_url = github_forensics.discover_from_site(site_url)
+    sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
+
     twitter = args.twitter or discover_twitter(mdata)
     sections["SITE"] = site.scan(site_url)
     sections["SOCIALS"] = socials.scan(twitter, launch_ms, site_url)

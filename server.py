@@ -61,10 +61,12 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
     token_name = mdata.get("name") or mdata.get("symbol") or ""
 
     sections["CONTRACT/HOLDERS"] = contract.scan(token_addr, chain, mdata.get("pair_addr"))
-    gh_url = github or github_forensics.discover_from_market(mdata)
+    discovered_site = site_url or scan_cli.discover_site(mdata)
+    gh_url = (github or github_forensics.discover_from_market(mdata)
+              or github_forensics.discover_from_site(discovered_site))
     sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
-    sections["SITE"] = site_mod.scan(site_url or scan_cli.discover_site(mdata))
-    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms, site_url or scan_cli.discover_site(mdata))
+    sections["SITE"] = site_mod.scan(discovered_site)
+    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms, discovered_site)
 
     tier, total_flags, hard = verdict.compute_tier(sections)
     score = verdict.compute_score(sections, tier, total_flags, hard)
