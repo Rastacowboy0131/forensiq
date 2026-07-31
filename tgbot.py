@@ -42,7 +42,8 @@ EVM_RE = re.compile(r"\b(0x[a-fA-F0-9]{40})\b")
 # base58 alphabet, no 0, O, I, l; word-boundary matched, EVM checked first
 SOL_RE = re.compile(r"\b([1-9A-HJ-NP-Za-km-z]{32,44})\b")
 
-CHAINS = ("robinhood", "solana", "ethereum", "eth", "bsc", "base", "arbitrum", "polygon")
+# RH only for now per Rasta 2026-07-30.
+CHAINS = ("robinhood",)
 
 TIER_EMOJI = {
     "LEGIT-REAL": "\U0001F7E2",      # green circle
@@ -55,9 +56,9 @@ TIER_EMOJI = {
 WARN = "\u26A0\uFE0F"
 
 START_TEXT = (
-    "<b>Forensiq</b>: rug and larp scanner for Robinhood Chain (plus Solana and major EVM chains).\n\n"
+    "<b>Forensiq</b>: rug and larp scanner for Robinhood Chain.\n\n"
     "Usage:\n"
-    "/scan &lt;address&gt; [chain] , chain defaults to robinhood\n"
+    "/scan &lt;address&gt;\n"
     "Optional extras: github=URL site=URL twitter=handle\n\n"
     "Or just paste a token address and I will scan it.\n\n"
     "Full reports: " + FORENSIQ_URL

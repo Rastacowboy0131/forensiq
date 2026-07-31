@@ -16,13 +16,8 @@
   <form id="scan-form" autocomplete="off">
     <div class="row">
       <input id="address" type="text" placeholder="token or pair address" required spellcheck="false">
-      <select id="chain">
+      <select id="chain" class="hidden" aria-hidden="true">
         <option value="robinhood" selected>robinhood</option>
-        <option value="solana">solana</option>
-        <option value="ethereum">ethereum</option>
-        <option value="bsc">bsc</option>
-        <option value="base">base</option>
-        <option value="arbitrum">arbitrum</option>
       </select>
       <button id="scan-btn" type="submit">scan</button>
     </div>

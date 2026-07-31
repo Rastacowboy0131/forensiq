@@ -3,7 +3,7 @@ import argparse
 import json
 import sys
 
-from . import market, contract, github_forensics, site, socials, verdict, report
+from . import market, contract, github_forensics, site, socials, verdict, report, polish
 
 
 def discover_site(market_data):
@@ -45,6 +45,7 @@ def main():
     ap.add_argument("--twitter", help="twitter handle")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
     ap.add_argument("--full", action="store_true", help="full section dump instead of clean report")
+    ap.add_argument("--polish", action="store_true", help="LLM-polish the report (needs FORENSIQ_LLM_API_KEY)")
     args = ap.parse_args()
 
     sections = {}
@@ -77,7 +78,8 @@ def main():
     elif args.full:
         print(verdict.render(sections, tier, total_flags, hard))
     else:
-        print(report.render_report(sections, tier, total_flags, hard))
+        base = report.render_report(sections, tier, total_flags, hard)
+        print(polish.polish(sections, tier, total_flags, hard, base) if args.polish else base)
 
 
 if __name__ == "__main__":

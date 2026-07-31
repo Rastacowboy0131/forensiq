@@ -15,7 +15,7 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from hoodscan import report, market, contract, github_forensics, site as site_mod, socials, verdict
+from hoodscan import report, polish, market, contract, github_forensics, site as site_mod, socials, verdict
 from hoodscan import report, scan as scan_cli
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +31,8 @@ _rate = {}               # ip -> [timestamps]
 _lock = threading.Lock()
 
 ADDR_RE = re.compile(r"^[A-Za-z0-9]{20,64}$")
-CHAINS = ("robinhood", "solana", "ethereum", "eth", "bsc", "base", "arbitrum", "polygon")
+# RH only for now per Rasta 2026-07-30; other chains hidden, engine still supports them.
+CHAINS = ("robinhood",)
 
 
 def load_history():
@@ -80,7 +81,8 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
                      for k, v in sections.items()},
         "rendered": rendered,
         "summary": summary,
-        "report": report.render_report(sections, tier, total_flags, hard),
+        "report": polish.polish(sections, tier, total_flags, hard,
+                                report.render_report(sections, tier, total_flags, hard)),
         "scanned_at": int(time.time()),
     }
 
