@@ -9,8 +9,12 @@
   var verdictLine = document.getElementById("verdict-line");
   var verdictSub = document.getElementById("verdict-sub");
   var summaryEl = document.getElementById("summary");
+  var confFill = document.getElementById("conf-fill");
+  var confNum = document.getElementById("conf-num");
   var statbar = document.getElementById("statbar");
   var breakdownEl = document.getElementById("breakdown");
+  var chartWrap = document.getElementById("chart-wrap");
+  var honeypotEl = document.getElementById("honeypot");
   var sectionsEl = document.getElementById("sections");
   var historyEl = document.getElementById("history");
   var dotsEl = document.getElementById("dots");
@@ -37,11 +41,12 @@
     return "$" + v.toFixed(0);
   }
 
-  function addStat(k, v) {
+  function addStat(k, v, cls) {
     var d = document.createElement("div");
     d.className = "stat";
     var ke = document.createElement("div"); ke.className = "k"; ke.textContent = k;
-    var ve = document.createElement("div"); ve.className = "v"; ve.textContent = v;
+    var ve = document.createElement("div"); ve.className = "v" + (cls ? " " + cls : "");
+    ve.textContent = v;
     d.appendChild(ke); d.appendChild(ve);
     statbar.appendChild(d);
   }
@@ -58,15 +63,74 @@
     breakdownEl.appendChild(d);
   }
 
+  function renderChart(m) {
+    chartWrap.innerHTML = "";
+    if (m && m.pair_addr) {
+      var f = document.createElement("iframe");
+      f.src = "https://dexscreener.com/robinhood/" + m.pair_addr +
+        "?embed=1&theme=dark&trades=0&info=0";
+      f.loading = "lazy";
+      chartWrap.appendChild(f);
+    } else {
+      var p = document.createElement("p");
+      p.className = "dim";
+      p.textContent = "no pair data for chart";
+      chartWrap.appendChild(p);
+    }
+  }
+
+  function renderHoneypot(data) {
+    honeypotEl.innerHTML = "";
+    var s = (data.sections || {})["CONTRACT/HOLDERS"] || {};
+    var hard = s.hard_flags || [];
+    var flags = s.flags || [];
+    var findings = s.findings || [];
+
+    var box = document.createElement("div");
+    var main = document.createElement("div");
+    main.className = "hp-main";
+    var sub = document.createElement("div");
+    sub.className = "hp-sub";
+    if (hard.length) {
+      box.className = "hp-status bad";
+      main.textContent = "CONTRACT CHECK: FAILED";
+      sub.textContent = hard[0];
+    } else if (flags.length) {
+      box.className = "hp-status warn";
+      main.textContent = "CONTRACT CHECK: WARNINGS";
+      sub.textContent = flags[0];
+    } else {
+      box.className = "hp-status";
+      main.textContent = "CONTRACT CHECK: PASSED";
+      sub.textContent = "no honeypot or contract red flags detected";
+    }
+    var wrap = document.createElement("div");
+    wrap.appendChild(main); wrap.appendChild(sub);
+    box.appendChild(wrap);
+    honeypotEl.appendChild(box);
+
+    var ul = document.createElement("ul");
+    findings.slice(0, 6).forEach(function (f) {
+      var li = document.createElement("li");
+      li.textContent = f;
+      ul.appendChild(li);
+    });
+    honeypotEl.appendChild(ul);
+  }
+
   function renderResult(data) {
     verdictEl.className = "panel verdict-panel tier-" + data.tier;
     verdictLine.textContent = "VERDICT: " + data.tier +
-      (data.score != null ? " · " + data.score + "/100" : "") +
       " - " + data.total_flags + " FLAG" + (data.total_flags === 1 ? "" : "S");
     var name = data.name ? data.name + " " : "";
     verdictSub.textContent = name + data.address + " on " + data.chain +
       (data.hard_flags && data.hard_flags.length ? " · HARD FLAGS FORCE AVOID" : "");
     summaryEl.textContent = data.summary || "";
+
+    var score = data.score != null ? data.score : 0;
+    confFill.style.width = "0";
+    confNum.textContent = score + "/100";
+    setTimeout(function () { confFill.style.width = score + "%"; }, 50);
 
     // Stat bar.
     statbar.innerHTML = "";
@@ -80,10 +144,15 @@
         addStat("Age", m.age_days >= 2 ? Math.round(m.age_days) + " days"
           : (m.age_days * 24).toFixed(1) + " hrs");
       }
+      addStat("Risk Score", (100 - score) + "/100",
+        score >= 60 ? "risk-low" : (score >= 35 ? "risk-mid" : "risk-high"));
       show(statbar);
     } else {
       hide(statbar);
     }
+
+    renderChart(m);
+    renderHoneypot(data);
 
     // Plain-english breakdown: hard flags, flags, then goods, tagged by section.
     breakdownEl.innerHTML = "";

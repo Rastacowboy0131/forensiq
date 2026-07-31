@@ -14,7 +14,8 @@
   </div>
   <form id="scan-form" autocomplete="off">
     <div class="search-wrap">
-      <input id="address" type="text" placeholder="Enter contract address or paste address..." required spellcheck="false">
+      <span class="search-icon">⌕</span>
+      <input id="address" type="text" placeholder="Enter contract address, token name, or paste address..." required spellcheck="false">
       <select id="chain" class="hidden" aria-hidden="true">
         <option value="robinhood" selected>robinhood</option>
       </select>
@@ -42,23 +43,43 @@
 
   <section id="result" class="hidden">
     <div id="verdict" class="panel verdict-panel">
-      <div class="panel-head">⌁ AI AGENT VERDICT</div>
-      <div id="verdict-line"></div>
-      <p id="verdict-sub"></p>
-      <p id="summary"></p>
+      <div class="panel-tab">AI AGENT VERDICT</div>
+      <div class="verdict-body">
+        <div class="verdict-main">
+          <div id="verdict-line"></div>
+          <p id="verdict-sub"></p>
+          <p id="summary"></p>
+        </div>
+        <div class="confidence">
+          <span class="conf-label">CONFIDENCE SCORE</span>
+          <div class="conf-track"><div id="conf-fill"></div></div>
+          <span id="conf-num"></span>
+        </div>
+      </div>
     </div>
-
-    <div id="statbar" class="panel statbar hidden"></div>
 
     <div class="grid">
       <div class="panel">
         <div class="panel-head">PLAIN ENGLISH BREAKDOWN</div>
         <div id="breakdown"></div>
       </div>
-      <div class="panel">
-        <div class="panel-head">FULL SCAN LOG</div>
-        <div id="sections"></div>
+      <div class="col">
+        <div class="panel chart-panel">
+          <div class="panel-head">PRICE CHART</div>
+          <div id="chart-wrap"><p class="dim">no pair data</p></div>
+        </div>
+        <div class="panel">
+          <div class="panel-head">CONTRACT &amp; HONEYPOT CHECK</div>
+          <div id="honeypot"></div>
+        </div>
       </div>
+    </div>
+
+    <div id="statbar" class="panel statbar hidden"></div>
+
+    <div class="panel">
+      <div class="panel-head">FULL SCAN LOG</div>
+      <div id="sections"></div>
     </div>
   </section>
 

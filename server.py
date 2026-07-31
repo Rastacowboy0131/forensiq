@@ -90,7 +90,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
             "mcap": mdata.get("mcap"), "liq": mdata.get("liq"),
             "vol24": mdata.get("vol24"), "buys24": mdata.get("buys24"),
             "sells24": mdata.get("sells24"), "age_days": mdata.get("age_days"),
-            "url": mdata.get("url"),
+            "url": mdata.get("url"), "pair_addr": mdata.get("pair_addr"),
         },
         "scanned_at": int(time.time()),
     }
