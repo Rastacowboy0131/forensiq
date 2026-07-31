@@ -84,7 +84,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
     gh_url = github or github_forensics.discover_from_market(mdata)
     sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
     sections["SITE"] = site_mod.scan(site_url or scan_cli.discover_site(mdata))
-    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms)
+    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms, site_url or scan_cli.discover_site(mdata))
 
     tier, total_flags, hard = verdict.compute_tier(sections)
     return {
@@ -134,6 +134,8 @@ def format_result(result):
             lines.append("%s <b>%s</b>" % (WARN, html.escape(f)))
         for f in (s.get("flags") or []):
             lines.append("%s %s" % (WARN, html.escape(f)))
+        for g in (s.get("good") or []):
+            lines.append("\u2705 %s" % html.escape(g))
         for f in (s.get("findings") or []):
             lines.append("\u2022 %s" % html.escape(f))
         blocks.append(lines)

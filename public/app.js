@@ -34,6 +34,12 @@
       data.total_flags + " flag" + (data.total_flags === 1 ? "" : "s") +
       (data.hard_flags && data.hard_flags.length ? ", hard flags force AVOID" : "") + ")";
     verdictEl.appendChild(small);
+    if (data.summary) {
+      var sum = document.createElement("p");
+      sum.className = "summary";
+      sum.textContent = data.summary;
+      verdictEl.appendChild(sum);
+    }
 
     sectionsEl.innerHTML = "";
     ORDER.forEach(function (key) {
@@ -47,6 +53,7 @@
       var ul = document.createElement("ul");
       (s.hard_flags || []).forEach(function (f) { addLi(ul, f, "hard"); });
       (s.flags || []).forEach(function (f) { addLi(ul, f, "flag"); });
+      (s.good || []).forEach(function (f) { addLi(ul, f, "good"); });
       (s.findings || []).forEach(function (f) { addLi(ul, f, "finding"); });
       if (!ul.children.length) addLi(ul, "nothing found", "finding");
       div.appendChild(ul);

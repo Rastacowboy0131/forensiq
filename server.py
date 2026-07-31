@@ -63,10 +63,11 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
     gh_url = github or github_forensics.discover_from_market(mdata)
     sections["GITHUB"] = github_forensics.scan(gh_url, launch_ms)
     sections["SITE"] = site_mod.scan(site_url or scan_cli.discover_site(mdata))
-    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms)
+    sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms, site_url or scan_cli.discover_site(mdata))
 
     tier, total_flags, hard = verdict.compute_tier(sections)
     rendered = verdict.render(sections, tier, total_flags, hard)
+    summary = verdict.summarize(sections, tier, total_flags, hard)
 
     return {
         "address": token_addr,
@@ -78,6 +79,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
         "sections": {k: {kk: vv for kk, vv in v.items() if kk != "data"}
                      for k, v in sections.items()},
         "rendered": rendered,
+        "summary": summary,
         "scanned_at": int(time.time()),
     }
 

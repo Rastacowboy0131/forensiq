@@ -63,7 +63,7 @@ def main():
     site_url = args.site or discover_site(mdata)
     twitter = args.twitter or discover_twitter(mdata)
     sections["SITE"] = site.scan(site_url)
-    sections["SOCIALS"] = socials.scan(twitter, launch_ms)
+    sections["SOCIALS"] = socials.scan(twitter, launch_ms, site_url)
 
     tier, total_flags, hard = verdict.compute_tier(sections)
 

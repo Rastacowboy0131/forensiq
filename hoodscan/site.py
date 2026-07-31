@@ -1,4 +1,7 @@
-"""SITE section: template-shell detection and dead-link sampling for a project site."""
+"""SITE section: substance analysis, template-shell detection, dead-link sampling.
+
+Returns findings (neutral facts), good (positive signals), flags (negative signals).
+"""
 import re
 from urllib.parse import urljoin, urlparse
 from .http import get_text
@@ -12,38 +15,74 @@ TEMPLATE_MARKERS = [
     ("notion.site", "notion page as site"),
 ]
 
+# Substance markers: links/paths that suggest a real product, not a landing page.
+SUBSTANCE_PATTERNS = [
+    (r'href=["\'][^"\']*(?:/docs|docs\.)', "docs"),
+    (r'href=["\'][^"\']*(?:/app|app\.)', "app"),
+    (r'href=["\'][^"\']*(?:/api\b|api\.)', "api"),
+    (r'href=["\'][^"\']*github\.com', "github link"),
+    (r'href=["\'][^"\']*(?:/whitepaper|whitepaper\.|litepaper)', "whitepaper"),
+    (r'href=["\'][^"\']*(?:/blog|blog\.|/changelog)', "blog/changelog"),
+    (r'href=["\'][^"\']*(?:/dashboard|dashboard\.)', "dashboard"),
+]
+
 
 def scan(site_url):
-    """Return {findings, flags} for the SITE section.
+    """Return {findings, good, flags} for the SITE section.
 
     Note: domain age (whois) is out of scope for v1, no whois dependency.
     """
-    findings, flags = [], []
+    findings, good, flags = [], [], []
     if not site_url:
-        return {"findings": ["no site URL provided"], "flags": []}
+        return {"findings": ["no site URL provided"], "good": [], "flags": []}
     if not site_url.startswith("http"):
         site_url = "https://" + site_url
 
     status, html = get_text(site_url)
     if status is None:
         return {"findings": ["site unreachable: {}".format(site_url)],
-                "flags": ["site unreachable"]}
+                "good": [], "flags": ["site unreachable"]}
     if status >= 400:
         return {"findings": ["site returned HTTP {}".format(status)],
-                "flags": ["site returns error {}".format(status)]}
+                "good": [], "flags": ["site returns error {}".format(status)]}
 
     findings.append("site reachable ({} bytes)".format(len(html)))
     text = re.sub(r"<script.*?</script>|<style.*?</style>|<[^>]+>", " ", html, flags=re.S)
     words = len(text.split())
     findings.append("visible text: ~{} words".format(words))
     if words < 100:
-        flags.append("near-empty homepage (<100 words)")
+        flags.append("near-empty homepage (<100 words of content)")
+    elif words >= 400:
+        good.append("substantial homepage content (~{} words)".format(words))
 
     low = html.lower()
     for marker, label in TEMPLATE_MARKERS:
         if marker in low:
             flags.append("template shell detected: {}".format(label))
             break
+
+    # Substance markers.
+    substance = []
+    for pat, label in SUBSTANCE_PATTERNS:
+        if re.search(pat, low):
+            substance.append(label)
+    if substance:
+        findings.append("substance links found: {}".format(", ".join(substance)))
+        if len(substance) >= 2:
+            good.append("real product surface: {} linked from homepage".format(" + ".join(substance[:4])))
+    else:
+        findings.append("no docs/app/api/github links on homepage")
+
+    # HTTPS and basic hygiene.
+    if site_url.startswith("https://"):
+        pass  # expected, not praiseworthy
+    if "<title>" in low:
+        m = re.search(r"<title[^>]*>(.*?)</title>", html, re.S | re.I)
+        title = (m.group(1).strip() if m else "")[:80]
+        if title:
+            findings.append("title: {}".format(title))
+        if title.lower() in ("", "document", "untitled", "react app", "vite app", "home"):
+            flags.append("default/unset page title ('{}'), template never customized".format(title or "empty"))
 
     # Sample up to 10 internal links, count dead ones.
     host = urlparse(site_url).netloc
@@ -67,7 +106,9 @@ def scan(site_url):
             dead += 1
     findings.append("sampled {} internal links, {} dead".format(len(internal), dead))
     if internal and dead / len(internal) > 0.3:
-        flags.append("{}/{} sampled internal links dead".format(dead, len(internal)))
+        flags.append("{}/{} sampled internal links dead (facade site)".format(dead, len(internal)))
+    elif len(internal) >= 5 and dead == 0:
+        good.append("all {} sampled internal pages load".format(len(internal)))
 
     findings.append("domain age check: out of scope for v1 (no whois)")
-    return {"findings": findings, "flags": flags}
+    return {"findings": findings, "good": good, "flags": flags}
