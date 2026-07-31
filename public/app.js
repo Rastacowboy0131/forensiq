@@ -61,6 +61,7 @@
   function renderResult(data) {
     verdictEl.className = "panel verdict-panel tier-" + data.tier;
     verdictLine.textContent = "VERDICT: " + data.tier +
+      (data.score != null ? " · " + data.score + "/100" : "") +
       " - " + data.total_flags + " FLAG" + (data.total_flags === 1 ? "" : "S");
     var name = data.name ? data.name + " " : "";
     verdictSub.textContent = name + data.address + " on " + data.chain +
@@ -147,7 +148,7 @@
         var li = document.createElement("li");
         var tier = document.createElement("span");
         tier.className = "h-tier t-" + it.tier;
-        tier.textContent = it.tier;
+        tier.textContent = it.tier + (it.score != null ? " " + it.score : "");
         var nm = document.createElement("span");
         nm.className = "h-name";
         nm.textContent = it.name || "";

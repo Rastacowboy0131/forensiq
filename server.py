@@ -67,6 +67,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
     sections["SOCIALS"] = socials.scan(twitter or scan_cli.discover_twitter(mdata), launch_ms, site_url or scan_cli.discover_site(mdata))
 
     tier, total_flags, hard = verdict.compute_tier(sections)
+    score = verdict.compute_score(sections, tier, total_flags, hard)
     rendered = verdict.render(sections, tier, total_flags, hard)
     summary = verdict.summarize(sections, tier, total_flags, hard)
 
@@ -75,6 +76,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
         "chain": chain,
         "name": token_name,
         "tier": tier,
+        "score": score,
         "total_flags": total_flags,
         "hard_flags": hard,
         "sections": {k: {kk: vv for kk, vv in v.items() if kk != "data"}
@@ -184,7 +186,8 @@ class Handler(BaseHTTPRequestHandler):
             hist = load_history()
             hist.insert(0, {"address": result["address"], "chain": result["chain"],
                             "name": result.get("name") or "",
-                            "tier": result["tier"], "ts": result["scanned_at"]})
+                            "tier": result["tier"], "score": result.get("score"),
+                            "ts": result["scanned_at"]})
             save_history(hist)
 
         result["cached"] = False

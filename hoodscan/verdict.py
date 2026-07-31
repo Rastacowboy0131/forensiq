@@ -48,6 +48,27 @@ def compute_tier(sections):
     return tier, total_flags, hard
 
 
+def compute_score(sections, tier, total_flags, hard):
+    """0-100 confidence score so same-tier tokens spread apart.
+
+    Base from tier, plus goods, minus flags, clamped to the tier's band so the
+    score never contradicts the tier.
+    """
+    bands = {
+        "LEGIT-REAL": (75, 100), "EARLY-REAL": (45, 74),
+        "NARRATIVE-ONLY": (30, 55), "SKETCHY": (15, 40),
+        "PURE-LARP": (5, 25), "AVOID": (0, 15),
+    }
+    lo, hi = bands.get(tier, (0, 100))
+    total_good = 0
+    for name, s in sections.items():
+        w = 2 if name == "CHART" else 1  # market evidence is the hardest to fake
+        total_good += w * len(s.get("good") or [])
+    base = lo + (hi - lo) * 0.35
+    score = base + total_good * 2.5 - total_flags * 4 - len(hard) * 10
+    return int(max(lo, min(hi, score)))
+
+
 def summarize(sections, tier, total_flags, hard):
     """Plain-english one-paragraph summary: strongest good, worst bad, net read."""
     goods, bads = [], []

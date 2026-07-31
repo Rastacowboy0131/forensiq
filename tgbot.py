@@ -93,6 +93,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
         "chain": chain,
         "name": token_name,
         "tier": tier,
+        "score": verdict.compute_score(sections, tier, total_flags, hard),
         "total_flags": total_flags,
         "hard_flags": hard,
         "sections": sections,
@@ -118,8 +119,11 @@ def format_result(result):
     """Render a scan result as Telegram HTML, kept under MAX_MSG chars."""
     tier = result["tier"]
     emoji = TIER_EMOJI.get(tier, "")
-    head = "%s <b>%s</b> (%d flag%s)" % (
-        emoji, html.escape(tier), result["total_flags"],
+    score = result.get("score")
+    head = "%s <b>%s</b>%s (%d flag%s)" % (
+        emoji, html.escape(tier),
+        " %d/100" % score if score is not None else "",
+        result["total_flags"],
         "s" if result["total_flags"] != 1 else "")
     name = result.get("name") or ""
     title = "%s %s on %s" % (html.escape(name), code(result["address"]), html.escape(result["chain"]))
