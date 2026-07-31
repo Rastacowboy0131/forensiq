@@ -85,11 +85,16 @@ def scan(addr, chain=None):
         good.append("sustained trading activity (vol24 {}, {} txns)".format(fmt_usd(vol24), buys + sells))
 
     # Wash-trade heuristic: high vol relative to liq plus buy:sell near 1:1 is churn.
+    # On day-one pairs this pattern is normal degen churn, so only flag once the
+    # pair is older than a day, and raise the bar for very young pairs.
     total_tx = buys + sells
     if liq > 0 and vol24 / liq > 10 and total_tx >= 20:
         ratio = buys / max(sells, 1)
         if 0.8 <= ratio <= 1.25:
-            flags.append("possible wash trading (vol/liq {:.0f}x, buy:sell near 1:1)".format(vol24 / liq))
+            if age_days is not None and age_days < 1:
+                findings.append("high churn (vol/liq {:.0f}x, buy:sell near 1:1), common on day-one pairs".format(vol24 / liq))
+            elif vol24 / liq > 25 or age_days is None or age_days >= 1:
+                flags.append("possible wash trading (vol/liq {:.0f}x, buy:sell near 1:1)".format(vol24 / liq))
 
     return {"findings": findings, "flags": flags, "good": good, "data": data}
 

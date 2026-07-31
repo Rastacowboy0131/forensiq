@@ -50,21 +50,48 @@ def scan(site_url):
     text = re.sub(r"<script.*?</script>|<style.*?</style>|<[^>]+>", " ", html, flags=re.S)
     words = len(text.split())
     findings.append("visible text: ~{} words".format(words))
-    if words < 100:
+
+    low = html.lower()
+
+    # SPA detection: tiny server HTML with a JS bundle and a mount div is a
+    # client-rendered app, not an empty page. We cannot render JS here, so do
+    # not punish it; check the bundle for substance instead.
+    scripts = re.findall(r'src=["\'](.*?\.js[^"\']*)["\']', html)
+    has_mount = bool(re.search(r'<div[^>]+id=["\'](?:root|app|__next)["\']', low))
+    is_spa = words < 100 and scripts and has_mount
+    bundle_js = ""
+    if is_spa:
+        findings.append("client-rendered app (SPA): {} script bundle(s), cannot render JS here".format(len(scripts)))
+        st, bundle_js = get_text(urljoin(site_url, scripts[0]))
+        if st is None or st >= 400:
+            bundle_js = ""
+        if bundle_js and len(bundle_js) > 100000:
+            good.append("substantial application bundle ({}kb of compiled app code)".format(len(bundle_js) // 1000))
+
+    if words < 100 and not is_spa:
         flags.append("near-empty homepage (<100 words of content)")
     elif words >= 400:
         good.append("substantial homepage content (~{} words)".format(words))
 
-    low = html.lower()
     for marker, label in TEMPLATE_MARKERS:
         if marker in low:
             flags.append("template shell detected: {}".format(label))
             break
 
-    # Substance markers.
+    # Substance markers (search bundle too for SPAs, where URLs live in JS).
     substance = []
+    bundle_low = bundle_js.lower()[:500000] if bundle_js else ""
+    bundle_markers = [
+        ("github.com/", "github link"),
+        ("/docs", "docs"),
+        ("whitepaper", "whitepaper"),
+        ("/changelog", "blog/changelog"),
+    ]
     for pat, label in SUBSTANCE_PATTERNS:
         if re.search(pat, low):
+            substance.append(label)
+    for needle, label in bundle_markers:
+        if label not in substance and needle in bundle_low:
             substance.append(label)
     if substance:
         findings.append("substance links found: {}".format(", ".join(substance)))
