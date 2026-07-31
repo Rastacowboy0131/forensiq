@@ -20,7 +20,8 @@ from hoodscan import report, scan as scan_cli
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PUBLIC = os.path.join(ROOT, "public")
-HISTORY_FILE = os.path.join(ROOT, "scans.json")
+DATA_DIR = os.environ.get("FORENSIQ_DATA_DIR") or ROOT
+HISTORY_FILE = os.path.join(DATA_DIR, "scans.json")
 
 CACHE_TTL = 600          # 10 minutes
 RATE_LIMIT = 10          # scans per minute per IP
