@@ -3,23 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Forensiq</title>
+<title>FORENSIQ | AI Token Forensics</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header>
-  <h1>Hood<span>Scan</span></h1>
-  <p class="tag">CA forensics, no cope</p>
-</header>
-
-<main>
+  <div class="brand">
+    <h1>FORENSIQ</h1>
+    <p class="tag">AI TOKEN FORENSICS</p>
+  </div>
   <form id="scan-form" autocomplete="off">
-    <div class="row">
-      <input id="address" type="text" placeholder="token or pair address" required spellcheck="false">
+    <div class="search-wrap">
+      <input id="address" type="text" placeholder="Enter contract address or paste address..." required spellcheck="false">
       <select id="chain" class="hidden" aria-hidden="true">
         <option value="robinhood" selected>robinhood</option>
       </select>
-      <button id="scan-btn" type="submit">scan</button>
+      <button id="scan-btn" type="submit">SCAN</button>
     </div>
     <details id="more">
       <summary>more options</summary>
@@ -30,26 +29,46 @@
       </div>
     </details>
   </form>
+  <span class="chain-badge">ROBINHOOD CHAIN</span>
+</header>
 
-  <div id="loading" class="hidden">
+<main>
+  <div id="loading" class="hidden panel">
     <div class="spinner"></div>
-    <p>scanning... this takes 10 to 30 seconds<span id="dots"></span></p>
+    <p>ANALYZING<span id="dots"></span> <small>10 to 30 seconds</small></p>
   </div>
 
   <div id="error" class="hidden"></div>
 
   <section id="result" class="hidden">
-    <div id="verdict"></div>
-    <div id="sections"></div>
+    <div id="verdict" class="panel verdict-panel">
+      <div class="panel-head">⌁ AI AGENT VERDICT</div>
+      <div id="verdict-line"></div>
+      <p id="verdict-sub"></p>
+      <p id="summary"></p>
+    </div>
+
+    <div id="statbar" class="panel statbar hidden"></div>
+
+    <div class="grid">
+      <div class="panel">
+        <div class="panel-head">PLAIN ENGLISH BREAKDOWN</div>
+        <div id="breakdown"></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head">FULL SCAN LOG</div>
+        <div id="sections"></div>
+      </div>
+    </div>
   </section>
 
-  <section id="history-wrap">
-    <h2>recent scans</h2>
+  <section id="history-wrap" class="panel">
+    <div class="panel-head">RECENT SCANS</div>
     <ul id="history"></ul>
   </section>
 </main>
 
-<footer>Forensiq v1: rule-based rug/larp scanner. Not financial advice.</footer>
+<footer>FORENSIQ v1 · rule engine + AI analysis · not financial advice</footer>
 <script src="app.js"></script>
 </body>
 </html>

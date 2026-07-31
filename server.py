@@ -83,6 +83,13 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
         "summary": summary,
         "report": polish.polish(sections, tier, total_flags, hard,
                                 report.render_report(sections, tier, total_flags, hard)),
+        "market": {
+            "symbol": mdata.get("symbol"), "price": mdata.get("price"),
+            "mcap": mdata.get("mcap"), "liq": mdata.get("liq"),
+            "vol24": mdata.get("vol24"), "buys24": mdata.get("buys24"),
+            "sells24": mdata.get("sells24"), "age_days": mdata.get("age_days"),
+            "url": mdata.get("url"),
+        },
         "scanned_at": int(time.time()),
     }
 
