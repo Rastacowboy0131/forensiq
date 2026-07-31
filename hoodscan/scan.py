@@ -3,7 +3,7 @@ import argparse
 import json
 import sys
 
-from . import market, contract, github_forensics, site, socials, verdict
+from . import market, contract, github_forensics, site, socials, verdict, report
 
 
 def discover_site(market_data):
@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--site", help="project website URL")
     ap.add_argument("--twitter", help="twitter handle")
     ap.add_argument("--json", action="store_true", help="machine-readable output")
+    ap.add_argument("--full", action="store_true", help="full section dump instead of clean report")
     args = ap.parse_args()
 
     sections = {}
@@ -73,8 +74,10 @@ def main():
                "sections": {k: {kk: vv for kk, vv in v.items() if kk != "data"}
                             for k, v in sections.items()}}
         print(json.dumps(out, indent=2))
-    else:
+    elif args.full:
         print(verdict.render(sections, tier, total_flags, hard))
+    else:
+        print(report.render_report(sections, tier, total_flags, hard))
 
 
 if __name__ == "__main__":

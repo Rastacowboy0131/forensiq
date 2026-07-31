@@ -15,8 +15,8 @@ import threading
 import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from hoodscan import market, contract, github_forensics, site as site_mod, socials, verdict
-from hoodscan import scan as scan_cli
+from hoodscan import report, market, contract, github_forensics, site as site_mod, socials, verdict
+from hoodscan import report, scan as scan_cli
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 PUBLIC = os.path.join(ROOT, "public")
@@ -80,6 +80,7 @@ def run_scan(address, chain, github=None, site_url=None, twitter=None):
                      for k, v in sections.items()},
         "rendered": rendered,
         "summary": summary,
+        "report": report.render_report(sections, tier, total_flags, hard),
         "scanned_at": int(time.time()),
     }
 
