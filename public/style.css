@@ -155,6 +155,8 @@ main { flex: 1; width: 100%; max-width: 1160px; margin: 0 auto; padding: 24px 20
 }
 #honeypot .hp-status.bad { border-color: var(--hard); background: rgba(255, 90, 102, .06); }
 #honeypot .hp-status.warn { border-color: var(--flag); background: rgba(251, 191, 36, .06); }
+#honeypot .hp-status.pending { border-color: var(--border); background: rgba(122, 122, 168, .05); }
+#honeypot .hp-status.pending .hp-main { color: var(--dim); }
 #honeypot .hp-main { font-weight: bold; letter-spacing: 1px; font-size: 13px; }
 #honeypot .hp-status .hp-main { color: var(--good); }
 #honeypot .hp-status.bad .hp-main { color: var(--hard); }
@@ -222,6 +224,18 @@ main { flex: 1; width: 100%; max-width: 1160px; margin: 0 auto; padding: 24px 20
 .t-EARLY-REAL { color: var(--cyan); }
 .t-NARRATIVE-ONLY, .t-SKETCHY { color: var(--flag); }
 .t-PURE-LARP, .t-AVOID { color: var(--hard); }
+
+.verdict-panel.pre #verdict-line { color: var(--dim); }
+#result.pre-scan .panel { opacity: .75; }
+#result.pre-scan .verdict-panel { box-shadow: none; border-color: var(--border); }
+.skel-bar {
+  height: 12px; margin: 12px 0;
+  background: linear-gradient(90deg, #14142e 25%, #1e1e44 50%, #14142e 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  clip-path: polygon(4px 0, 100% 0, calc(100% - 4px) 100%, 0 100%);
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
 .cached-note { color: var(--dim); font-size: 11px; margin-top: 10px; }
 .permalink { color: var(--cyan); text-decoration: none; }

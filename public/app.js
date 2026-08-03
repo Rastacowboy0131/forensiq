@@ -119,6 +119,7 @@
   }
 
   function renderResult(data) {
+    result.classList.remove("pre-scan");
     verdictEl.className = "panel verdict-panel tier-" + data.tier;
     verdictLine.textContent = "VERDICT: " + data.tier +
       " - " + data.total_flags + " FLAG" + (data.total_flags === 1 ? "" : "S");
@@ -220,6 +221,77 @@
     ul.appendChild(li);
   }
 
+  var SECTION_DESCS = {
+    "CHART": "market data: mcap, liquidity, volume, txns, pair age, wash-trade heuristics",
+    "CONTRACT/HOLDERS": "honeypot check, taxes, ownership, mint authority, holder concentration, sniper clusters",
+    "GITHUB": "repo discovery, commit history forensics, backdating and burst-commit detection",
+    "SITE": "website substance, SPA and template detection, dead-link checks",
+    "SOCIALS": "twitter presence, account age, engagement quality"
+  };
+
+  function skelBars(el, n) {
+    for (var i = 0; i < n; i++) {
+      var b = document.createElement("div");
+      b.className = "skel-bar";
+      b.style.width = (50 + ((i * 17) % 40)) + "%";
+      el.appendChild(b);
+    }
+  }
+
+  function renderSkeleton(scanning) {
+    result.classList.add("pre-scan");
+    verdictEl.className = "panel verdict-panel pre";
+    verdictLine.textContent = scanning ? "VERDICT: SCANNING..." : "VERDICT: AWAITING SCAN";
+    verdictSub.textContent = scanning
+      ? "running full forensic scan, sections below fill in when it completes"
+      : "paste a contract address above to run a full forensic scan";
+    summaryEl.textContent = "";
+    confFill.style.width = "0";
+    confNum.textContent = "--/100";
+
+    statbar.innerHTML = "";
+    ["Market Cap", "Liquidity", "Vol 24h", "Txns 24h", "Age", "Risk Score"]
+      .forEach(function (k) { addStat(k, "--"); });
+    show(statbar);
+
+    chartWrap.innerHTML = "";
+    var cp = document.createElement("p");
+    cp.className = "dim";
+    cp.textContent = "price chart loads after scan";
+    chartWrap.appendChild(cp);
+
+    honeypotEl.innerHTML = "";
+    var box = document.createElement("div");
+    box.className = "hp-status pending";
+    var wrap = document.createElement("div");
+    var main = document.createElement("div");
+    main.className = "hp-main";
+    main.textContent = scanning ? "CONTRACT CHECK: RUNNING" : "CONTRACT CHECK: PENDING";
+    var sub = document.createElement("div");
+    sub.className = "hp-sub";
+    sub.textContent = "honeypot, buy/sell taxes, ownership, holder concentration";
+    wrap.appendChild(main); wrap.appendChild(sub);
+    box.appendChild(wrap);
+    honeypotEl.appendChild(box);
+
+    breakdownEl.innerHTML = "";
+    skelBars(breakdownEl, 5);
+
+    sectionsEl.innerHTML = "";
+    ORDER.forEach(function (key) {
+      var div = document.createElement("div");
+      div.className = "section";
+      var h = document.createElement("h3");
+      h.textContent = key;
+      div.appendChild(h);
+      var ul = document.createElement("ul");
+      addLi(ul, SECTION_DESCS[key] || "awaiting scan", "finding");
+      div.appendChild(ul);
+      sectionsEl.appendChild(div);
+    });
+    show(result);
+  }
+
   function loadHistory() {
     fetch("/api/history").then(function (r) { return r.json(); }).then(function (items) {
       historyEl.innerHTML = "";
@@ -256,7 +328,8 @@
       site: document.getElementById("site").value.trim() || undefined,
       twitter: document.getElementById("twitter").value.trim() || undefined
     };
-    hide(errBox); hide(result);
+    hide(errBox);
+    renderSkeleton(true);
     show(loading); startDots();
     btn.disabled = true;
 
@@ -283,6 +356,7 @@
 
   // Permalink route: /r/<id> loads a stored report.
   var m = window.location.pathname.match(/^\/r\/([a-f0-9]{12})$/);
+  if (!m) renderSkeleton(false);
   if (m) {
     show(loading); startDots();
     fetch("/api/report/" + m[1]).then(function (r) {
