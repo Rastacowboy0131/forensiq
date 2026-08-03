@@ -1,95 +1,228 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FORENSIQ | AI Token Forensics</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORENSIQ — Token Forensics on Robinhood Chain</title>
+<meta name="description" content="Paste a contract address, get a forensic verdict. Chart, contract/holders, github, site, and social analysis for tokens on Robinhood Chain.">
+<link rel="icon" type="image/png" href="assets/favicon-32.png">
+<link rel="apple-touch-icon" href="assets/favicon-192.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div class="brand">
-    <h1>FORENSIQ</h1>
-    <p class="tag">AI TOKEN FORENSICS</p>
-  </div>
-  <form id="scan-form" autocomplete="off">
-    <div class="search-wrap">
-      <span class="search-icon">⌕</span>
-      <input id="address" type="text" placeholder="Enter contract address, token name, or paste address..." required spellcheck="false">
-      <select id="chain" class="hidden" aria-hidden="true">
-        <option value="robinhood" selected>robinhood</option>
-      </select>
-      <button id="scan-btn" type="submit">SCAN</button>
-    </div>
-    <details id="more">
-      <summary>more options</summary>
-      <div class="row extra">
-        <input id="github" type="text" placeholder="github org or repo URL (optional)" spellcheck="false">
-        <input id="site" type="text" placeholder="project website (optional)" spellcheck="false">
-        <input id="twitter" type="text" placeholder="twitter handle (optional)" spellcheck="false">
+
+<div class="scanline-overlay" aria-hidden="true"></div>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a href="/" class="brand" aria-label="FORENSIQ home">
+      <img src="assets/wordmark.png" alt="FORENSIQ" class="brand-logo">
+    </a>
+
+    <div class="header-right">
+      <span class="chain-badge">
+        <span class="chain-dot"></span>ROBINHOOD CHAIN
+      </span>
+      <div class="social-cluster">
+        <a href="#" class="social-link" data-social="x" aria-label="FORENSIQ on X" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18.9 2H22l-7.6 8.7L23.3 22h-7.1l-5.5-7.2L4.3 22H1.2l8.1-9.3L1 2h7.3l5 6.6L18.9 2Zm-1.2 18h1.9L7.4 4H5.4l12.3 16Z"/></svg>
+          <span>X</span>
+        </a>
+        <a href="#" class="social-link" data-social="tg" aria-label="FORENSIQ on Telegram" target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M21.9 3.5 18.6 20.3c-.2 1.1-.9 1.4-1.9.9l-5.2-3.8-2.5 2.4c-.3.3-.5.5-1 .5l.4-5.3L18 6.2c.4-.4-.1-.6-.6-.2L7 12.5l-5.2-1.6c-1.1-.3-1.1-1.1.2-1.6L20.6 2.2c.9-.3 1.7.2 1.3 1.3Z"/></svg>
+          <span>Telegram</span>
+        </a>
       </div>
-    </details>
-  </form>
-  <span class="chain-badge">ROBINHOOD CHAIN</span>
+      <button class="ca-box" id="caBox" type="button" title="Click to copy contract address">
+        <span class="ca-label">CA</span>
+        <span class="ca-value" id="caValue">Coming soon</span>
+        <svg class="ca-copy-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="1.5"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>
+      </button>
+    </div>
+  </div>
 </header>
 
 <main>
-  <div id="loading" class="hidden panel">
-    <div class="spinner"></div>
-    <p>ANALYZING<span id="dots"></span> <small>10 to 30 seconds</small></p>
-  </div>
 
-  <div id="error" class="hidden"></div>
+  <!-- SEARCH -->
+  <section class="search-section">
+    <div class="search-inner">
+      <h1 class="search-title">Scan any token on Robinhood Chain</h1>
+      <p class="search-sub">Paste a contract or pair address. We check the chart, the contract, the code, the site, and the socials — then hand you one verdict.</p>
 
-  <section id="result" class="hidden">
-    <div id="verdict" class="panel verdict-panel">
-      <div class="panel-tab">AI AGENT VERDICT</div>
-      <div class="verdict-body">
-        <div class="verdict-main">
-          <div id="verdict-line"></div>
-          <p id="verdict-sub"></p>
-          <p id="summary"></p>
+      <form class="scan-form" id="scanForm" autocomplete="off">
+        <div class="scan-input-wrap">
+          <svg class="scan-input-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" id="addressInput" class="scan-input" placeholder="0x..." spellcheck="false" required>
+          <button type="submit" class="scan-btn" id="scanBtn">
+            <span class="scan-btn-text">SCAN</span>
+            <span class="scan-btn-loading" hidden>
+              <span class="mini-spinner"></span> SCANNING
+            </span>
+          </button>
         </div>
-        <div class="confidence">
-          <span class="conf-label">CONFIDENCE SCORE</span>
-          <div class="conf-track"><div id="conf-fill"></div></div>
-          <span id="conf-num"></span>
-        </div>
-      </div>
-    </div>
 
-    <div class="grid">
-      <div class="panel">
-        <div class="panel-head">PLAIN ENGLISH BREAKDOWN</div>
-        <div id="breakdown"></div>
-      </div>
-      <div class="col">
-        <div class="panel chart-panel">
-          <div class="panel-head">PRICE CHART</div>
-          <div id="chart-wrap"><p class="dim">no pair data</p></div>
-        </div>
-        <div class="panel">
-          <div class="panel-head">CONTRACT &amp; HONEYPOT CHECK</div>
-          <div id="honeypot"></div>
-        </div>
-      </div>
-    </div>
+        <button type="button" class="more-options-toggle" id="moreOptionsToggle" aria-expanded="false">
+          <svg class="chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          more options
+        </button>
 
-    <div id="statbar" class="panel statbar hidden"></div>
+        <div class="more-options" id="moreOptions" hidden>
+          <div class="hint-field">
+            <label for="githubHint">GitHub hint</label>
+            <input type="text" id="githubHint" placeholder="org/repo or full URL">
+          </div>
+          <div class="hint-field">
+            <label for="siteHint">Site hint</label>
+            <input type="text" id="siteHint" placeholder="https://project.xyz">
+          </div>
+          <div class="hint-field">
+            <label for="twitterHint">Twitter hint</label>
+            <input type="text" id="twitterHint" placeholder="@handle">
+          </div>
+        </div>
+      </form>
 
-    <div class="panel">
-      <div class="panel-head">FULL SCAN LOG</div>
-      <div id="sections"></div>
+      <p class="scan-error" id="scanError" hidden></p>
     </div>
   </section>
 
-  <section id="history-wrap" class="panel">
-    <div class="panel-head">RECENT SCANS</div>
-    <ul id="history"></ul>
+  <!-- VERDICT HERO -->
+  <section class="verdict-panel panel" id="verdictPanel" data-state="empty">
+    <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+    <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+
+    <div class="verdict-top">
+      <div class="verdict-token">
+        <span class="verdict-token-name" id="tokenName">AWAITING SCAN</span>
+        <span class="verdict-token-address" id="tokenAddress">Paste an address above to begin</span>
+      </div>
+      <div class="verdict-tier-wrap">
+        <img class="verdict-tier-badge" id="tierBadge" src="assets/badge-legit-real.png" alt="" hidden>
+        <span class="verdict-tier-placeholder" id="tierPlaceholder">TIER —</span>
+      </div>
+    </div>
+
+    <div class="confidence-row">
+      <div class="confidence-label-row">
+        <span>CONFIDENCE SCORE</span>
+        <span class="confidence-value" id="confidenceValue">--</span>
+      </div>
+      <div class="confidence-track">
+        <div class="confidence-fill" id="confidenceFill" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="flag-count-row">
+      <span class="flag-pill" id="flagCount">-- flags found</span>
+    </div>
+
+    <p class="verdict-summary" id="verdictSummary">The verdict, confidence score, and plain-english summary will appear here once a scan completes. Paste a Robinhood Chain contract or pair address above and hit SCAN.</p>
   </section>
+
+  <!-- STAT BAR -->
+  <section class="stat-bar" id="statBar">
+    <div class="stat-cell">
+      <span class="stat-label">Market Cap</span>
+      <span class="stat-value" data-stat="mcap">--</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-label">Liquidity</span>
+      <span class="stat-value" data-stat="liq">--</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-label">Vol 24h</span>
+      <span class="stat-value" data-stat="vol24">--</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-label">Txns 24h</span>
+      <span class="stat-value" data-stat="txns">--</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-label">Age</span>
+      <span class="stat-value" data-stat="age">--</span>
+    </div>
+    <div class="stat-cell stat-risk">
+      <span class="stat-label">Risk Score</span>
+      <span class="stat-value" data-stat="risk">--</span>
+    </div>
+  </section>
+
+  <!-- TWO COLUMN GRID -->
+  <section class="main-grid">
+
+    <!-- LEFT: BREAKDOWN -->
+    <div class="panel breakdown-panel">
+      <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+      <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+      <h2 class="panel-title">Plain English Breakdown</h2>
+      <div class="breakdown-list" id="breakdownList">
+        <div class="shimmer-line w-90"></div>
+        <div class="shimmer-line w-75"></div>
+        <div class="shimmer-line w-95"></div>
+        <div class="shimmer-line w-60"></div>
+        <div class="shimmer-line w-80"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: CHART + CONTRACT CHECK -->
+    <div class="right-col">
+      <div class="panel chart-panel">
+        <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+        <h2 class="panel-title">Price Chart</h2>
+        <div class="chart-embed-wrap" id="chartEmbedWrap">
+          <div class="chart-placeholder">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="m18 9-5 5-3-3-4 4"/></svg>
+            <span>Chart loads after scan</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel contract-panel">
+        <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+        <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+        <h2 class="panel-title">Contract &amp; Honeypot Check</h2>
+        <div class="contract-status" id="contractStatus" data-status="pending">
+          <span class="contract-status-dot"></span>
+          <span class="contract-status-text">PENDING</span>
+        </div>
+        <p class="contract-status-sub" id="contractStatusSub">Runs automatically as part of the CONTRACT/HOLDERS section.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FULL SCAN LOG -->
+  <section class="panel log-panel">
+    <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+    <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+    <h2 class="panel-title">Full Scan Log</h2>
+    <div class="log-sections" id="logSections">
+      <!-- populated by JS, skeleton descriptions on load -->
+    </div>
+  </section>
+
+  <!-- RECENT SCANS -->
+  <section class="panel recent-panel">
+    <div class="panel-corner tl"></div><div class="panel-corner tr"></div>
+    <div class="panel-corner bl"></div><div class="panel-corner br"></div>
+    <h2 class="panel-title">Recent Scans</h2>
+    <div class="recent-list" id="recentList">
+      <p class="recent-empty">No scans yet — history will populate here.</p>
+    </div>
+  </section>
+
 </main>
 
-<footer>FORENSIQ v1 · rule engine + AI analysis · not financial advice</footer>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>FORENSIQ v1 · rule engine + AI analysis · not financial advice</span>
+    <nav class="footer-links">
+      <a href="terms.html">Terms &amp; Disclaimer</a>
+    </nav>
+  </div>
+</footer>
+
 <script src="app.js"></script>
 </body>
 </html>
